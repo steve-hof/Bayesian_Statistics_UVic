@@ -1,0 +1,120 @@
+---
+title:    | 
+    | STAT 460 
+    | Bayesian Statistics 
+    | Final Project
+author: "Steve Hof"
+date: "28/11/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Consider the multiple linear regression model:
+$$
+y=\boldsymbol{X} \beta+\boldsymbol{E}
+$$
+where $y$ is a vector of size $n$ containing the response variable, $\boldsymbol{X}$ is a matrix of size $n \times J$ of fixed covariates, and $\beta$ is a vector of size $J$ containing the coefficients that characterize the linear relationship between $y$ and $X .$ Let $\boldsymbol{E}$ be a vector of of size $n$ of random noise terms. We assume $\boldsymbol{E} \sim N_{n}(0, \Sigma),$ with known $\Sigma=I_{n} .$ Now assume that for each $j=1, \ldots, J$
+$$
+\begin{array}{c}
+\beta_{j} \mid \delta_{j}, \tau, \epsilon \sim \delta_{j} N\left(0, \tau^{2}\right)+\left(1-\delta_{j}\right) N(0, \epsilon) \\
+\delta_{j} \mid \pi \sim \operatorname{Bernoulli}(\pi) \\
+\pi \mid a_{\pi}, b_{\pi} \sim \operatorname{Beta}\left(\frac{a_{\pi}}{2}, \frac{b_{\pi}}{2}\right)
+\end{array}
+$$
+Let $\theta=(\beta, \delta, \pi),$ then the prior distribution of $\theta$ is $p(\theta)=p\left(\pi \mid a_{\pi}, b_{\pi}\right) \prod_{j=1}^{J} p\left(\beta_{j} \mid \delta_{j}, \tau^{2}, \epsilon\right) p\left(\delta_{j} \mid \pi\right)$
+
+## Question (a)
+Write down $p(\beta_j | \delta_j, \tau^2, \epsilon)$, the prior of $\beta_j$, up to a constant of proportionality.
+
+**solution:**
+
+\begin{align*}
+p(\beta_j | \delta_j, \tau^2, \epsilon) &= \left(\frac{1}{\sqrt{2\pi \tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \beta_j^2 \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{2\pi\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon}\beta_j^2 \right\} \right)^{(1-\delta_j)} \\
+  &\propto \left(\frac{1}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)}
+\end{align*}
+
+
+
+
+## Question (b)
+Use (a) to find the full conditional distribution of $\beta_j$
+
+Use (a) to find the full conditional distribution of $\beta_{j},$ i.e., $p\left(\beta_{j} \mid \delta_{j}, \tau^{2}, \epsilon, y\right)$. 
+
+**Hint 1:** consider two separate distributions, $p\left(\beta_{j} \mid \delta_{j}=0, \tau^{2}, \varepsilon, y\right)$ and $p\left(\beta_{j} \mid \delta_{j}=1, \tau^{2}, \varepsilon, y\right)$. 
+
+**Hint 2:** If it helps, use the fact that $y_{i}-\sum_{j=1}^{J} X_{i j} \beta_{j}=\tilde{y}_{i}-X_{i j} \beta_{j},$ where $\tilde{y}_{i}=y_{i}-$
+$\sum_{l \neq j} X_{i l} \beta_{l}$
+
+**solution:**
+
+We start by using hint 1.
+
+\begin{align*}
+p(\beta_j, \delta_j=0, \tau^2, \varepsilon, y) &= p(\beta_j, \delta_j=0, \tau^2, \varepsilon)\prod_{i=1}^n p(y_i | \beta_j) \\
+   &\propto \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}\prod_{i=1}^n p(y_i | \beta_j)
+\end{align*}
+
+To keep things more organized we will calculate the likelihood $\prod_{i=1}^n p(y_i | \beta_j)$ separately now, then continue on by plugging it into the above.
+
+\begin{align*}
+\prod_{i=1}^n p(y_i | \beta_j) &= \prod_{i=1}^n\det(\Sigma)^{-\frac{1}{2}} \text{exp}\left\{-\frac{1}{2}\left(y_i - \sum_{j=1}^JX_{ij}\beta_j \right)^2 \right\} \\
+    &\propto    \text{exp}\left\{\sum_{i=1}^n \left(-\frac{1}{2} \right) \left(y_i - \sum_{j=1}^JX_{ij}\beta_j \right)^2 \right\} \\
+    &\propto    \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \text{(Hint 2)}
+\end{align*}
+
+Now, plugging the likelihood back into the above, we have
+
+\begin{align*}
+p(\beta_j, \delta_j=0, \tau^2, \varepsilon, y) &\propto \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2} \left(\frac{\beta_j^2}{\varepsilon} + \sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j  \right)^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(\beta_j^2 + \varepsilon \sum_{i=1}^n\left(\tilde{y} - X_{ij}\beta_j \right)^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(\beta_j^2 + \varepsilon \sum_{i=1}^n \left[\tilde{y}_i^2 - 2\tilde{y}_i X_{ij}\beta_j + X_{ij}^2\beta_j^2 \right] \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(\beta_j^2 + \varepsilon \left[\sum_{i=1}^n \tilde{y}_i^2 - 2\sum_{i=1}^n\tilde{y}_i X_{ij}\beta_j + \sum_{i=1}^n X_{ij}^2\beta_j^2 \right] \right) \right\} \\
+    &\propto    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{\beta_j^2 + \varepsilon \left[-2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j+\sum_{i=1}^n X_{ij} \beta_j^2\right] \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon}\left(\beta_j^2 - 2\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j + \varepsilon\beta_j^2 \sum_{i=1}^nX_{ij}^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon}\left(\beta_j^2 + \varepsilon\beta_j^2 \sum_{i=1}^nX_{ij}^2- 2\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j  \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon}\left(\beta_j^2 \left(1 + \varepsilon\sum_{i=1}^nX_{ij}^2 \right) - 2\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j  \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(1 + \varepsilon \sum_{i=1}^nX_{ij}^2 \right)\left[\beta_j^2- \frac{2\varepsilon\sum_{i=1}^n \tilde{y}X_{ij}\beta_j}{1 + \varepsilon\sum_{i=1}^nX_{ij}^2} \right] \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(1 + \varepsilon \sum_{i=1}^nX_{ij}^2 \right)\left[\left( \beta_j^2 - \frac{\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\varepsilon\sum_{i=1}^nX_{ij}}\right)^2 - \left(\frac{\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\varepsilon\sum_{i=1}^nX_{ij}} \right)^2\right] \right\} \\
+    &\propto    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left( \beta_j^2 - \frac{\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\varepsilon\sum_{i=1}^nX_{ij}}\right)^2 \left(1 + \varepsilon \sum_{i=1}^nX_{ij}^2 \right) \right\} 
+\end{align*}
+
+The full conditional of $\beta_j$ when $\delta_j=0$ is, therefore, given by
+$$p(\beta_j \mid \delta_j=0, \tau^2, \varepsilon,y) \sim \text{Normal}\left(\frac{\varepsilon\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\varepsilon\sum_{i=1}^nX_{ij}^2}, \varepsilon\left(1 + \varepsilon\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)$$
+We then repeat the process for the full conditional of $\beta_j$ with $\delta_j=1$.
+
+
+
+## Question (c)
+Show that the full conditional distribution of $\delta_j$ is Bernoulli$\displaystyle \left(\frac{p_1}{p_0 + p_1} \right)$ with $p_1 = \pi\text{exp}\left\{-\frac{1}{2\tau^2}\beta_j^2 \right\}$ and $\displaystyle p_0 = \frac{(1-\pi)\tau}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{1}{2\varepsilon} \beta_j^2 \right\}$.
+
+**solution:**
+
+\begin{align*}
+p(\delta_j | \beta_j, \tau^2, \varepsilon) &= p(\beta_j | \delta_j, \tau^2, \varepsilon) p(\delta_j | \pi) \\
+  &\propto \left(\frac{1}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)} \pi^{\delta_j}(1 - \pi)^{(1-\delta_j)} \\
+  &\propto \left(\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)} \\
+ &\propto \left(\frac{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{\delta_j} \left(\frac{\frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{(1-\delta_j)} \\
+ &= \left(\frac{\pi\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{\delta_j} \left(\frac{\frac{(1-\pi)\tau}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{(1-\delta_j)}
+\end{align*}
+
+We have now shown that the full conditional distribution of $\delta_j$ is Bernoulli$\displaystyle \left(\frac{p_1}{p_0 + p_1} \right)$ with $p_1 = \pi\text{exp}\left\{-\frac{1}{2\tau^2}\beta_j^2 \right\}$ and $\displaystyle p_0 = \frac{(1-\pi)\tau}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{1}{2\varepsilon} \beta_j^2 \right\}$.
+
+
+## Question (d)
+Write down the full conditional distribution of $\pi$.
+
+**solution:**
+\begin{align*}
+  p\left(\pi | \delta_j, \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2}\right) &\propto p\left(\pi | \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2}\right) \prod_{j=1}^J p(\delta_j | \pi) \\
+& \propto \pi^{\frac{a_{\pi}}{2} - 1}(1-\pi)^{\frac{b_{\pi}}{2} - 1} \prod_{j=1}^J\pi^{\delta_j} (1-\pi)^{(1-\delta_j)} \\
+&\propto \pi^{\frac{a_{\pi}}{2} - 1}(1-\pi)^{\frac{b_{\pi}}{2} - 1} \pi^{\sum_{j=1}^J\delta_j } (1 - \pi)^{\sum_{j=1}^J(1-\delta_j) } \\
+& \propto \pi^{\sum_{j=1}^J\delta_j + \frac{a_{\pi}}{2} - 1 }(1 - \pi)^{\sum_{j=1}^J(1-\delta_j) + \frac{b_{\pi}}{2} - 1}
+\end{align*}
+
+Which means that 
+$$\pi | \delta_j, \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2} \sim \text{Beta}\left(\sum \delta_j + \frac{a_\pi}{2}, \sum (1-\delta_j)+ \frac{b_\pi}{2} \right)$$
