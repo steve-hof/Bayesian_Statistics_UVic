@@ -87,7 +87,23 @@ The full conditional of $\beta_j$ when $\delta_j=0$ is, therefore, given by
 $$p(\beta_j \mid \delta_j=0, \tau^2, \varepsilon,y) \sim \text{Normal}\left(\frac{\varepsilon\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\varepsilon\sum_{i=1}^nX_{ij}^2}, \varepsilon\left(1 + \varepsilon\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)$$
 We then repeat the process for the full conditional of $\beta_j$ with $\delta_j=1$.
 
+\begin{align*}
+p(\beta_j, \delta_j=0, \tau^2, \tau^2, y) &\propto \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2} \left(\frac{\beta_j^2}{\tau^2} + \sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j  \right)^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(\beta_j^2 + \tau^2 \sum_{i=1}^n\left(\tilde{y} - X_{ij}\beta_j \right)^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(\beta_j^2 + \tau^2 \sum_{i=1}^n \left[\tilde{y}_i^2 - 2\tilde{y}_i X_{ij}\beta_j + X_{ij}^2\beta_j^2 \right] \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(\beta_j^2 + \tau^2 \left[\sum_{i=1}^n \tilde{y}_i^2 - 2\sum_{i=1}^n\tilde{y}_i X_{ij}\beta_j + \sum_{i=1}^n X_{ij}^2\beta_j^2 \right] \right) \right\} \\
+    &\propto    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{\beta_j^2 + \tau^2 \left[-2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j+\sum_{i=1}^n X_{ij} \beta_j^2\right] \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2}\left(\beta_j^2 - 2\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j + \tau^2\beta_j^2 \sum_{i=1}^nX_{ij}^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2}\left(\beta_j^2 + \tau^2\beta_j^2 \sum_{i=1}^nX_{ij}^2- 2\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j  \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2}\left(\beta_j^2 \left(1 + \tau^2\sum_{i=1}^nX_{ij}^2 \right) - 2\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j  \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(1 + \tau^2 \sum_{i=1}^nX_{ij}^2 \right)\left[\beta_j^2- \frac{2\tau^2\sum_{i=1}^n \tilde{y}X_{ij}\beta_j}{1 + \tau^2\sum_{i=1}^nX_{ij}^2} \right] \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(1 + \tau^2 \sum_{i=1}^nX_{ij}^2 \right)\left[\left( \beta_j^2 - \frac{\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\tau^2\sum_{i=1}^nX_{ij}}\right)^2 - \left(\frac{\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\tau^2\sum_{i=1}^nX_{ij}} \right)^2\right] \right\} \\
+    &\propto    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left( \beta_j^2 - \frac{\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\tau^2\sum_{i=1}^nX_{ij}}\right)^2 \left(1 + \tau^2 \sum_{i=1}^nX_{ij}^2 \right) \right\} 
+\end{align*}
 
+The full conditional of $\beta_j$ when $\delta_j=1$ is, therefore, given by
+$$p(\beta_j \mid \delta_j=0, \tau^2, \tau^2,y) \sim \text{Normal}\left(\frac{\tau^2\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\tau^2\sum_{i=1}^nX_{ij}^2}, \tau^2\left(1 + \tau^2\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)$$
 
 ## Question (c)
 Show that the full conditional distribution of $\delta_j$ is Bernoulli$\displaystyle \left(\frac{p_1}{p_0 + p_1} \right)$ with $p_1 = \pi\text{exp}\left\{-\frac{1}{2\tau^2}\beta_j^2 \right\}$ and $\displaystyle p_0 = \frac{(1-\pi)\tau}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{1}{2\varepsilon} \beta_j^2 \right\}$.
