@@ -1,0 +1,302 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdfauthor={Steve Hof},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage(algorithm2e)
+
+\title{STAT 460\\
+Bayesian Statistics\\
+Final Project}
+\author{Steve Hof}
+\date{28/11/2020}
+
+\begin{document}
+\maketitle
+
+\hypertarget{part-i}{%
+\section{Part I}\label{part-i}}
+
+Consider the multiple linear regression model: \[
+y=\boldsymbol{X} \beta+\boldsymbol{E}
+\] where \(y\) is a vector of size \(n\) containing the response
+variable, \(\boldsymbol{X}\) is a matrix of size \(n \times J\) of fixed
+covariates, and \(\beta\) is a vector of size \(J\) containing the
+coefficients that characterize the linear relationship between \(y\) and
+\(X .\) Let \(\boldsymbol{E}\) be a vector of of size \(n\) of random
+noise terms. We assume \(\boldsymbol{E} \sim N_{n}(0, \Sigma),\) with
+known \(\Sigma=I_{n} .\) Now assume that for each \(j=1, \ldots, J\) \[
+\begin{array}{c}
+\beta_{j} \mid \delta_{j}, \tau, \epsilon \sim \delta_{j} N\left(0, \tau^{2}\right)+\left(1-\delta_{j}\right) N(0, \epsilon) \\
+\delta_{j} \mid \pi \sim \operatorname{Bernoulli}(\pi) \\
+\pi \mid a_{\pi}, b_{\pi} \sim \operatorname{Beta}\left(\frac{a_{\pi}}{2}, \frac{b_{\pi}}{2}\right)
+\end{array}
+\] Let \(\theta=(\beta, \delta, \pi),\) then the prior distribution of
+\(\theta\) is
+\(p(\theta)=p\left(\pi \mid a_{\pi}, b_{\pi}\right) \prod_{j=1}^{J} p\left(\beta_{j} \mid \delta_{j}, \tau^{2}, \epsilon\right) p\left(\delta_{j} \mid \pi\right)\)
+
+\hypertarget{question-a}{%
+\subsection{Question (a)}\label{question-a}}
+
+Write down \(p(\beta_j | \delta_j, \tau^2, \epsilon)\), the prior of
+\(\beta_j\), up to a constant of proportionality.
+
+\textbf{solution:}
+
+\begin{align*}
+p(\beta_j | \delta_j, \tau^2, \epsilon) &= \left(\frac{1}{\sqrt{2\pi \tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \beta_j^2 \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{2\pi\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon}\beta_j^2 \right\} \right)^{(1-\delta_j)} \\
+  &\propto \left(\frac{1}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)}
+\end{align*}
+
+\hypertarget{question-b}{%
+\subsection{Question (b)}\label{question-b}}
+
+Use (a) to find the full conditional distribution of \(\beta_j\)
+
+Use (a) to find the full conditional distribution of \(\beta_{j},\)
+i.e.,
+\(p\left(\beta_{j} \mid \delta_{j}, \tau^{2}, \epsilon, y\right)\).
+
+\textbf{Hint 1:} consider two separate distributions,
+\(p\left(\beta_{j} \mid \delta_{j}=0, \tau^{2}, \varepsilon, y\right)\)
+and
+\(p\left(\beta_{j} \mid \delta_{j}=1, \tau^{2}, \varepsilon, y\right)\).
+
+\textbf{Hint 2:} If it helps, use the fact that
+\(y_{i}-\sum_{j=1}^{J} X_{i j} \beta_{j}=\tilde{y}_{i}-X_{i j} \beta_{j},\)
+where \(\tilde{y}_{i}=y_{i}-\) \(\sum_{l \neq j} X_{i l} \beta_{l}\)
+
+\textbf{solution:}
+
+We start by using hint 1.
+
+\begin{align*}
+p(\beta_j, \delta_j=0, \tau^2, \varepsilon, y) &= p(\beta_j, \delta_j=0, \tau^2, \varepsilon)\prod_{i=1}^n p(y_i | \beta_j) \\
+   &\propto \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}\prod_{i=1}^n p(y_i | \beta_j)
+\end{align*}
+
+To keep things more organized we will calculate the likelihood
+\(\prod_{i=1}^n p(y_i | \beta_j)\) separately now, then continue on by
+plugging it into the above.
+
+\begin{align*}
+\prod_{i=1}^n p(y_i | \beta_j) &= \prod_{i=1}^n\det(\Sigma)^{-\frac{1}{2}} \text{exp}\left\{-\frac{1}{2}\left(y_i - \sum_{j=1}^JX_{ij}\beta_j \right)^2 \right\} \\
+    &\propto    \text{exp}\left\{\sum_{i=1}^n \left(-\frac{1}{2} \right) \left(y_i - \sum_{j=1}^JX_{ij}\beta_j \right)^2 \right\} \\
+    &\propto    \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \text{(Hint 2)}
+\end{align*}
+
+Now, plugging the likelihood back into the above, we have
+
+\begin{align*}
+p(\beta_j, \delta_j=0, \tau^2, \varepsilon, y) &\propto \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2} \left(\frac{\beta_j^2}{\varepsilon} + \sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j  \right)^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(\beta_j^2 + \varepsilon \sum_{i=1}^n\left(\tilde{y} - X_{ij}\beta_j \right)^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(\beta_j^2 + \varepsilon \sum_{i=1}^n \left[\tilde{y}_i^2 - 2\tilde{y}_i X_{ij}\beta_j + X_{ij}^2\beta_j^2 \right] \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(\beta_j^2 + \varepsilon \left[\sum_{i=1}^n \tilde{y}_i^2 - 2\sum_{i=1}^n\tilde{y}_i X_{ij}\beta_j + \sum_{i=1}^n X_{ij}^2\beta_j^2 \right] \right) \right\} \\
+    &\propto    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{\beta_j^2 + \varepsilon \left[-2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j+\sum_{i=1}^n X_{ij} \beta_j^2\right] \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon}\left(\beta_j^2 - 2\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j + \varepsilon\beta_j^2 \sum_{i=1}^nX_{ij}^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon}\left(\beta_j^2 + \varepsilon\beta_j^2 \sum_{i=1}^nX_{ij}^2- 2\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j  \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon}\left(\beta_j^2 \left(1 + \varepsilon\sum_{i=1}^nX_{ij}^2 \right) - 2\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j  \right) \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(1 + \varepsilon \sum_{i=1}^nX_{ij}^2 \right)\left[\beta_j^2- \frac{2\varepsilon\sum_{i=1}^n \tilde{y}X_{ij}\beta_j}{1 + \varepsilon\sum_{i=1}^nX_{ij}^2} \right] \right\} \\
+    &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(1 + \varepsilon \sum_{i=1}^nX_{ij}^2 \right)\left[\left( \beta_j^2 - \frac{\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\varepsilon\sum_{i=1}^nX_{ij}}\right)^2 - \left(\frac{\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\varepsilon\sum_{i=1}^nX_{ij}} \right)^2\right] \right\} \\
+    &\propto    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left( \beta_j^2 - \frac{\varepsilon\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\varepsilon\sum_{i=1}^nX_{ij}}\right)^2 \left(1 + \varepsilon \sum_{i=1}^nX_{ij}^2 \right) \right\} 
+\end{align*}
+
+The full conditional of \(\beta_j\) when \(\delta_j=0\) is, therefore,
+given by
+\[p(\beta_j \mid \delta_j=0, \tau^2, \varepsilon,y) \sim \text{Normal}\left(\frac{\varepsilon\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\varepsilon\sum_{i=1}^nX_{ij}^2}, \varepsilon\left(1 + \varepsilon\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)\]
+We then repeat the process for the full conditional of \(\beta_j\) with
+\(\delta_j=1\).
+
+\begin{align*}
+p(\beta_j, \delta_j=0, \tau^2, \tau^2, y) &\propto \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2} \left(\frac{\beta_j^2}{\tau^2} + \sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j  \right)^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(\beta_j^2 + \tau^2 \sum_{i=1}^n\left(\tilde{y} - X_{ij}\beta_j \right)^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(\beta_j^2 + \tau^2 \sum_{i=1}^n \left[\tilde{y}_i^2 - 2\tilde{y}_i X_{ij}\beta_j + X_{ij}^2\beta_j^2 \right] \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(\beta_j^2 + \tau^2 \left[\sum_{i=1}^n \tilde{y}_i^2 - 2\sum_{i=1}^n\tilde{y}_i X_{ij}\beta_j + \sum_{i=1}^n X_{ij}^2\beta_j^2 \right] \right) \right\} \\
+    &\propto    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{\beta_j^2 + \tau^2 \left[-2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j+\sum_{i=1}^n X_{ij} \beta_j^2\right] \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2}\left(\beta_j^2 - 2\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j + \tau^2\beta_j^2 \sum_{i=1}^nX_{ij}^2 \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2}\left(\beta_j^2 + \tau^2\beta_j^2 \sum_{i=1}^nX_{ij}^2- 2\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j  \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2}\left(\beta_j^2 \left(1 + \tau^2\sum_{i=1}^nX_{ij}^2 \right) - 2\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j  \right) \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(1 + \tau^2 \sum_{i=1}^nX_{ij}^2 \right)\left[\beta_j^2- \frac{2\tau^2\sum_{i=1}^n \tilde{y}X_{ij}\beta_j}{1 + \tau^2\sum_{i=1}^nX_{ij}^2} \right] \right\} \\
+    &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(1 + \tau^2 \sum_{i=1}^nX_{ij}^2 \right)\left[\left( \beta_j^2 - \frac{\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\tau^2\sum_{i=1}^nX_{ij}}\right)^2 - \left(\frac{\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\tau^2\sum_{i=1}^nX_{ij}} \right)^2\right] \right\} \\
+    &\propto    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left( \beta_j^2 - \frac{\tau^2\sum_{i=1}^n\tilde{y}X_{ij}\beta_j}{1+\tau^2\sum_{i=1}^nX_{ij}}\right)^2 \left(1 + \tau^2 \sum_{i=1}^nX_{ij}^2 \right) \right\} 
+\end{align*}
+
+The full conditional of \(\beta_j\) when \(\delta_j=1\) is, therefore,
+given by
+\[p(\beta_j \mid \delta_j=0, \tau^2, \tau^2,y) \sim \text{Normal}\left(\frac{\tau^2\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\tau^2\sum_{i=1}^nX_{ij}^2}, \tau^2\left(1 + \tau^2\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)\]
+
+\hypertarget{question-c}{%
+\subsection{Question (c)}\label{question-c}}
+
+Show that the full conditional distribution of \(\delta_j\) is
+Bernoulli\(\displaystyle \left(\frac{p_1}{p_0 + p_1} \right)\) with
+\(p_1 = \pi\text{exp}\left\{-\frac{1}{2\tau^2}\beta_j^2 \right\}\) and
+\(\displaystyle p_0 = \frac{(1-\pi)\tau}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{1}{2\varepsilon} \beta_j^2 \right\}\).
+
+\textbf{solution:}
+
+\begin{align*}
+p(\delta_j | \beta_j, \tau^2, \varepsilon) &= p(\beta_j | \delta_j, \tau^2, \varepsilon) p(\delta_j | \pi) \\
+  &\propto \left(\frac{1}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)} \pi^{\delta_j}(1 - \pi)^{(1-\delta_j)} \\
+  &\propto \left(\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)} \\
+ &\propto \left(\frac{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{\delta_j} \left(\frac{\frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{(1-\delta_j)} \\
+ &= \left(\frac{\pi\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{\delta_j} \left(\frac{\frac{(1-\pi)\tau}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{(1-\delta_j)}
+\end{align*}
+
+We have now shown that the full conditional distribution of \(\delta_j\)
+is Bernoulli\(\displaystyle \left(\frac{p_1}{p_0 + p_1} \right)\) with
+\(p_1 = \pi\text{exp}\left\{-\frac{1}{2\tau^2}\beta_j^2 \right\}\) and
+\(\displaystyle p_0 = \frac{(1-\pi)\tau}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{1}{2\varepsilon} \beta_j^2 \right\}\).
+
+\hypertarget{question-d}{%
+\subsection{Question (d)}\label{question-d}}
+
+Write down the full conditional distribution of \(\pi\).
+
+\textbf{solution:} \begin{align*}
+  p\left(\pi | \delta_j, \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2}\right) &\propto p\left(\pi | \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2}\right) \prod_{j=1}^J p(\delta_j | \pi) \\
+& \propto \pi^{\frac{a_{\pi}}{2} - 1}(1-\pi)^{\frac{b_{\pi}}{2} - 1} \prod_{j=1}^J\pi^{\delta_j} (1-\pi)^{(1-\delta_j)} \\
+&\propto \pi^{\frac{a_{\pi}}{2} - 1}(1-\pi)^{\frac{b_{\pi}}{2} - 1} \pi^{\sum_{j=1}^J\delta_j } (1 - \pi)^{\sum_{j=1}^J(1-\delta_j) } \\
+& \propto \pi^{\sum_{j=1}^J\delta_j + \frac{a_{\pi}}{2} - 1 }(1 - \pi)^{\sum_{j=1}^J(1-\delta_j) + \frac{b_{\pi}}{2} - 1}
+\end{align*}
+
+Which means that
+\[\pi | \delta_j, \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2} \sim \text{Beta}\left(\sum \delta_j + \frac{a_\pi}{2}, \sum (1-\delta_j)+ \frac{b_\pi}{2} \right)\]
+
+\hypertarget{question-e}{%
+\subsection{Question (e)}\label{question-e}}
+
+Write down a Gibbs sampler algorithm to sample from the joint posterior
+distribution of \(\theta\).
+
+\textbf{solution:} With Gibbs sampling, the idea is to create a Markov
+Chain with stationary distribution equal to the full posterior. We go
+back and forth updating the parameters one at a time using the current
+value of all the other parameters. We start with parameters with the
+fewest number of dependencies.
+
+For our case, in particular, the algorithm is
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\KwResult{Write result here}
+initialization\;
+\While{While condition)}{
+instructions\;
+\eIf{condition}{
+instructions1\;
+instructions2\;
+}{instructions3\;
+}
+}
+\caption{Gibbs Sampler}
+\end{algorithm}
+
+\hypertarget{part-ii}{%
+\section{Part II}\label{part-ii}}
+
+\hypertarget{question-f}{%
+\subsection{Question (f)}\label{question-f}}
+
+Let \(\varepsilon = 10^{-4}\) and \(\tau^2 = 10^2\). Explain
+heuristically how the spike-and-slab prior allows for variable selection
+in the multiple linear regression model context.
+
+\textbf{solution:}
+
+\hypertarget{question-g}{%
+\subsection{Question (g)}\label{question-g}}
+
+Let \(a_{\pi} = b_{\pi} = 1\), the bathtub prior distribution for
+\(\pi\). Using \(\varepsilon\) and \(\tau\) as in part (f), obtain
+posterior estimates for the coefficient \(\beta\).
+
+\hypertarget{question-h}{%
+\subsection{Question (h)}\label{question-h}}
+
+Check for vonvergence of the MCMC chains using trace plots and compute
+\(\hat{R}\).
+
+\hypertarget{question-i}{%
+\subsection{Question (i)}\label{question-i}}
+
+If the MCMC is converging, present the results including the posterior
+mean, posterior variance, and a \(95\%\) credible interval for each
+coefficient. Based on these results, which covariates are important to
+predict the response variable?
+
+\hypertarget{question-j}{%
+\subsection{Question (j)}\label{question-j}}
+
+Sensitivity Analysis. Consider four different prior distributions for
+\(\pi\) by choosing values of \(a_\pi\) and \(b_\pi\) that change the
+shape of the beta distribution. Plot the prior of \(\pi\) for each of
+these values. Is the posterior distribution of \(\beta\) sensitive to
+these new prior distributions?
+
+\hypertarget{question-k}{%
+\subsection{Question (k)}\label{question-k}}
+
+Model Checking. Generate \(10,000\) replications of the data
+\(y^{\text{rep}}\) using the same \(x_i\) as the original data. Compare
+the posterior mean and median. Based on that, does the model generate
+predicted results similar to the observed data in the study?
+
+\end{document}
