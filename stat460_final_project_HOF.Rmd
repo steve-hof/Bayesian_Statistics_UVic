@@ -9,8 +9,19 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
+rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
+library(coda)
+library(R.matlab)
+setwd("/Users/stevehof/Documents/School/Fall_2020/STAT_460/Assignments/Quality_Work")
 ```
+
+```{r data, include=FALSE}
+dat = readMat("Dataset_FinalProject_2.mat")
+X = dat$X
+y = dat$Y
+```
+# Part I
 
 Consider the multiple linear regression model:
 $$
@@ -40,8 +51,6 @@ p(\beta_j | \delta_j, \tau^2, \epsilon) &= \left(\frac{1}{\sqrt{2\pi \tau^2}}\te
 
 
 ## Question (b)
-Use (a) to find the full conditional distribution of $\beta_j$
-
 Use (a) to find the full conditional distribution of $\beta_{j},$ i.e., $p\left(\beta_{j} \mid \delta_{j}, \tau^{2}, \epsilon, y\right)$. 
 
 **Hint 1:** consider two separate distributions, $p\left(\beta_{j} \mid \delta_{j}=0, \tau^{2}, \varepsilon, y\right)$ and $p\left(\beta_{j} \mid \delta_{j}=1, \tau^{2}, \varepsilon, y\right)$. 
@@ -134,3 +143,117 @@ Write down the full conditional distribution of $\pi$.
 
 Which means that 
 $$\pi | \delta_j, \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2} \sim \text{Beta}\left(\sum \delta_j + \frac{a_\pi}{2}, \sum (1-\delta_j)+ \frac{b_\pi}{2} \right)$$
+
+## Question (e)
+Write down a Gibbs sampler algorithm to sample from the joint posterior distribution of $\theta$.
+
+**solution:**
+$$p(\theta \mid y) = p(\beta, \delta, \pi \mid y)$$
+
+With Gibbs sampling, the idea is to create a Markov Chain with stationary distribution equal to the full posterior, so that we can generate posterior samples from it. We go back and forth updating the parameters one at a time using the current value of all the other parameters. We start with the simplest conditional and move toward the most complicated.
+
+For our case, in particular, the algorithm is
+
+
+In code, we have
+
+```{r gibbs_updates}
+
+ytilde = function(y, X, bet, i, j) {
+  y[i] - sum(setdiff(X[i,], X[i,j]) * setdiff(bet, bet[j]))
+}
+
+update_pi = function(delta_j, a_pi, b_pi) {
+  shape1 = sum(delta_j) + a_pi/2
+  shape2 = sum(1-delta_j) + b_pi/2
+  rbeta(n = 1, shape1, shape2)
+}
+
+update_delta = function(beta_j, pi, tau, eps) {
+  p1 = pi * exp(-1/(2*tau^2) * beta_j^2)
+  p0 = ((1 - pi) * tau / sqrt(eps)) * exp(-1/(2*eps) * beta_j)
+  rbinom(n = 1, prob = p1/(p0+p1))
+}
+
+update_beta = function(tau, eps, X, y, delta_j, i, j, bet) {
+  ytilde = y[i] - sum(setdiff(X[i,], X[i,j]) * setdiff(bet, bet[j]))
+  
+  if(delta_j == 0) {
+    mutop = eps * sum(X[i, j] * ytild[i])
+    mubot = 1 + eps * sum(X[i, j]^2)
+    sd = sqrt(eps / (1 + eps * sum(X[i, j]^2)))
+    return(rnorm(n = 1, mean = mutop / mubot, sd = sd))
+  }
+  if(delta_j == 1) {
+    mutop = tau^2 * sum(X[i, j] * ytild[i])
+    mubot = 1 + tau^2 * sum(X[i, j]^2)
+    sd = sqrt(tau^2 / (1 + tau^2 * sum(X[i, j]^2)))
+    return(rnorm(n = 1, mean = mutop / mubot, sd = sd))
+  }
+}
+```
+
+```{r gibbs, eval=FALSE, include=FALSE}
+gibbs = function(y, X, n_iter, init, prior) {
+  n = length(y)
+  
+  # initialize
+  pi_out = numeric(n_iter)
+  delta_out = numeric(n_iter)
+  beta_out = numeric(n_iter)
+  
+  beta.curr = init$beta
+  a_pi = init$a_pi
+  b_pi = init$b_pi
+  tau = init$tau
+  eps = init$eps
+  delta = init$delta
+  
+    
+  pi.curr = update_pi(delta_j = delta, a_pi = a_pi, b_pi = b_pi)
+  
+  
+    # Gibbs sampler
+  for(k in 1:n_iter) {
+    delta.curr = update_delta(beta_j = beta.curr[j], pi = pi.curr, tau = , eps = )
+    
+  }
+}
+```
+
+
+# Part II
+## Question (f)
+Let $\varepsilon = 10^{-4}$ and $\tau^2 = 10^2$. Explain heuristically how the spike-and-slab prior allows for variable selection in the multiple linear regression model context.
+
+**solution:**
+
+## Question (g)
+Let $a_{\pi} = b_{\pi} = 1$, the bathtub prior distribution for $\pi$. Using $\varepsilon$ and $\tau$ as in part (f), obtain posterior estimates for the coefficient $\beta$.
+
+```{r setup_gibbs}
+priors = list()
+init = list()
+
+model = lm(y ~ X - 1)
+prior$betas = model$coefficients
+
+init$a_pi = 1
+init$b_pi = 1
+init$tau = 10
+init$eps = 10^-4
+init$delta = 0
+
+```
+
+## Question (h)
+Check for vonvergence of the MCMC chains using trace plots and compute $\hat{R}$.
+
+## Question (i)
+If the MCMC is converging, present the results including the posterior mean, posterior variance, and a $95\%$ credible interval for each coefficient. Based on these results, which covariates are important to predict the response variable?
+
+## Question (j)
+Sensitivity Analysis. Consider four different prior distributions for $\pi$ by choosing values of $a_\pi$ and $b_\pi$ that change the shape of the beta distribution. Plot the prior of $\pi$ for each of these values. Is the posterior distribution of $\beta$ sensitive to these new prior distributions?
+
+## Question (k)
+Model Checking. Generate $10,000$ replications of the data $y^{\text{rep}}$ using the same $x_i$ as the original data. Compare the posterior mean and median. Based on that, does the model generate predicted results similar to the observed data in the study?
