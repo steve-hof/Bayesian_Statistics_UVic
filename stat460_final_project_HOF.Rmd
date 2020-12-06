@@ -112,7 +112,7 @@ p(\beta_j, \delta_j=0, \tau^2, \tau^2, y) &\propto \frac{1}{\sqrt{\tau^2}}\text{
 \end{align*}
 
 The full conditional of $\beta_j$ when $\delta_j=1$ is, therefore, given by
-$$p(\beta_j \mid \delta_j=0, \tau^2, \tau^2,y) \sim \text{Normal}\left(\frac{\tau^2\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\tau^2\sum_{i=1}^nX_{ij}^2}, \tau^2\left(1 + \tau^2\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)$$
+$$p(\beta_j \mid \delta_j=1, \tau^2, \tau^2,y) \sim \text{Normal}\left(\frac{\tau^2\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\tau^2\sum_{i=1}^nX_{ij}^2}, \tau^2\left(1 + \tau^2\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)$$
 
 ## Question (c)
 Show that the full conditional distribution of $\delta_j$ is Bernoulli$\displaystyle \left(\frac{p_1}{p_0 + p_1} \right)$ with $p_1 = \pi\text{exp}\left\{-\frac{1}{2\tau^2}\beta_j^2 \right\}$ and $\displaystyle p_0 = \frac{(1-\pi)\tau}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{1}{2\varepsilon} \beta_j^2 \right\}$.
