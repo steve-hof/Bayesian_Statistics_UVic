@@ -13,8 +13,11 @@ rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 library(coda)
 library(R.matlab)
+library(HDInterval)
 setwd("/Users/stevehof/Documents/School/Fall_2020/STAT_460/Assignments/Quality_Work")
 ```
+
+The data from this project was supplied by the course instructor, Dr. Michelle Miranda. We first read in the data, then use it in the second half of the project.
 
 ```{r data, include=FALSE}
 dat = readMat("Dataset_FinalProject_2.mat")
@@ -38,12 +41,12 @@ $$
 Let $\theta=(\beta, \delta, \pi),$ then the prior distribution of $\theta$ is $p(\theta)=p\left(\pi \mid a_{\pi}, b_{\pi}\right) \prod_{j=1}^{J} p\left(\beta_{j} \mid \delta_{j}, \tau^{2}, \epsilon\right) p\left(\delta_{j} \mid \pi\right)$
 
 ## Question (a)
-Write down $p(\beta_j | \delta_j, \tau^2, \epsilon)$, the prior of $\beta_j$, up to a constant of proportionality.
+Write down $p(\beta_j \mid \delta_j, \tau^2, \epsilon)$, the prior of $\beta_j$, up to a constant of proportionality.
 
 **solution:**
 
 \begin{align*}
-p(\beta_j | \delta_j, \tau^2, \epsilon) &= \left(\frac{1}{\sqrt{2\pi \tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \beta_j^2 \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{2\pi\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon}\beta_j^2 \right\} \right)^{(1-\delta_j)} \\
+p(\beta_j \mid \delta_j, \tau^2, \epsilon) &= \left(\frac{1}{\sqrt{2\pi \tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \beta_j^2 \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{2\pi\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon}\beta_j^2 \right\} \right)^{(1-\delta_j)} \\
   &\propto \left(\frac{1}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)}
 \end{align*}
 
@@ -63,7 +66,7 @@ $\sum_{l \neq j} X_{i l} \beta_{l}$
 We start by using hint 1.
 
 \begin{align*}
-p(\beta_j, \delta_j=0, \tau^2, \varepsilon, y) &= p(\beta_j, \delta_j=0, \tau^2, \varepsilon)\prod_{i=1}^n p(y_i | \beta_j) \\
+p(\beta_j \mid \delta_j=0, \tau^2, \varepsilon, y) &= p(\beta_j \mid \delta_j=0, \tau^2, \varepsilon)\prod_{i=1}^n p(y_i | \beta_j) \\
    &\propto \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}\prod_{i=1}^n p(y_i | \beta_j)
 \end{align*}
 
@@ -78,7 +81,7 @@ To keep things more organized we will calculate the likelihood $\prod_{i=1}^n p(
 Now, plugging the likelihood back into the above, we have
 
 \begin{align*}
-p(\beta_j, \delta_j=0, \tau^2, \varepsilon, y) &\propto \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \\
+p(\beta_j \mid \delta_j=0, \tau^2, \varepsilon, y) &\propto \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \\
     &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2} \left(\frac{\beta_j^2}{\varepsilon} + \sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j  \right)^2 \right) \right\} \\
     &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(\beta_j^2 + \varepsilon \sum_{i=1}^n\left(\tilde{y} - X_{ij}\beta_j \right)^2 \right) \right\} \\
     &=    \frac{1}{\sqrt{\varepsilon}}\text{exp}\left\{-\frac{1}{2\varepsilon} \left(\beta_j^2 + \varepsilon \sum_{i=1}^n \left[\tilde{y}_i^2 - 2\tilde{y}_i X_{ij}\beta_j + X_{ij}^2\beta_j^2 \right] \right) \right\} \\
@@ -93,11 +96,11 @@ p(\beta_j, \delta_j=0, \tau^2, \varepsilon, y) &\propto \frac{1}{\sqrt{\varepsil
 \end{align*}
 
 The full conditional of $\beta_j$ when $\delta_j=0$ is, therefore, given by
-$$p(\beta_j \mid \delta_j=0, \tau^2, \varepsilon,y) \sim \text{Normal}\left(\frac{\varepsilon\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\varepsilon\sum_{i=1}^nX_{ij}^2}, \varepsilon\left(1 + \varepsilon\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)$$
+$$p(\beta_j \mid \delta_j=0, \varepsilon,y) \sim \text{Normal}\left(\frac{\varepsilon\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\varepsilon\sum_{i=1}^nX_{ij}^2}, \varepsilon\left(1 + \varepsilon\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)$$
 We then repeat the process for the full conditional of $\beta_j$ with $\delta_j=1$.
 
 \begin{align*}
-p(\beta_j, \delta_j=0, \tau^2, \tau^2, y) &\propto \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \\
+p(\beta_j \mid \delta_j=0, \tau^2, \tau^2, y) &\propto \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \\
     &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2} \left(\frac{\beta_j^2}{\tau^2} + \sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j  \right)^2 \right) \right\} \\
     &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(\beta_j^2 + \tau^2 \sum_{i=1}^n\left(\tilde{y} - X_{ij}\beta_j \right)^2 \right) \right\} \\
     &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(\beta_j^2 + \tau^2 \sum_{i=1}^n \left[\tilde{y}_i^2 - 2\tilde{y}_i X_{ij}\beta_j + X_{ij}^2\beta_j^2 \right] \right) \right\} \\
@@ -112,7 +115,7 @@ p(\beta_j, \delta_j=0, \tau^2, \tau^2, y) &\propto \frac{1}{\sqrt{\tau^2}}\text{
 \end{align*}
 
 The full conditional of $\beta_j$ when $\delta_j=1$ is, therefore, given by
-$$p(\beta_j \mid \delta_j=1, \tau^2, \tau^2,y) \sim \text{Normal}\left(\frac{\tau^2\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\tau^2\sum_{i=1}^nX_{ij}^2}, \tau^2\left(1 + \tau^2\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)$$
+$$p(\beta_j \mid \delta_j=1, \tau^2,y) \sim \text{Normal}\left(\frac{\tau^2\sum_{i=1}^n X_{ij}\tilde{y_i}}{1+\tau^2\sum_{i=1}^nX_{ij}^2}, \tau^2\left(1 + \tau^2\sum_{i=1}^nX_{ij}^2 \right)^{-1} \right)$$
 
 ## Question (c)
 Show that the full conditional distribution of $\delta_j$ is Bernoulli$\displaystyle \left(\frac{p_1}{p_0 + p_1} \right)$ with $p_1 = \pi\text{exp}\left\{-\frac{1}{2\tau^2}\beta_j^2 \right\}$ and $\displaystyle p_0 = \frac{(1-\pi)\tau}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{1}{2\varepsilon} \beta_j^2 \right\}$.
@@ -120,7 +123,7 @@ Show that the full conditional distribution of $\delta_j$ is Bernoulli$\displays
 **solution:**
 
 \begin{align*}
-p(\delta_j | \beta_j, \tau^2, \varepsilon) &= p(\beta_j | \delta_j, \tau^2, \varepsilon) p(\delta_j | \pi) \\
+p(\delta_j \mid \beta_j, \tau^2, \varepsilon) &= p(\beta_j | \delta_j, \tau^2, \varepsilon) p(\delta_j | \pi) \\
   &\propto \left(\frac{1}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)} \pi^{\delta_j}(1 - \pi)^{(1-\delta_j)} \\
   &\propto \left(\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)} \\
  &\propto \left(\frac{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{\delta_j} \left(\frac{\frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{(1-\delta_j)} \\
@@ -135,91 +138,38 @@ Write down the full conditional distribution of $\pi$.
 
 **solution:**
 \begin{align*}
-  p\left(\pi | \delta_j, \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2}\right) &\propto p\left(\pi | \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2}\right) \prod_{j=1}^J p(\delta_j | \pi) \\
+  p\left(\pi \mid \delta_j, \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2}\right) &\propto p\left(\pi | \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2}\right) \prod_{j=1}^J p(\delta_j | \pi) \\
 & \propto \pi^{\frac{a_{\pi}}{2} - 1}(1-\pi)^{\frac{b_{\pi}}{2} - 1} \prod_{j=1}^J\pi^{\delta_j} (1-\pi)^{(1-\delta_j)} \\
 &\propto \pi^{\frac{a_{\pi}}{2} - 1}(1-\pi)^{\frac{b_{\pi}}{2} - 1} \pi^{\sum_{j=1}^J\delta_j } (1 - \pi)^{\sum_{j=1}^J(1-\delta_j) } \\
 & \propto \pi^{\sum_{j=1}^J\delta_j + \frac{a_{\pi}}{2} - 1 }(1 - \pi)^{\sum_{j=1}^J(1-\delta_j) + \frac{b_{\pi}}{2} - 1}
 \end{align*}
 
 Which means that 
-$$\pi | \delta_j, \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2} \sim \text{Beta}\left(\sum \delta_j + \frac{a_\pi}{2}, \sum (1-\delta_j)+ \frac{b_\pi}{2} \right)$$
+$$\pi \mid \delta_j, \frac{a_{\pi}}{2}, \frac{b_{\pi}}{2} \sim \text{Beta}\left(\sum \delta_j + \frac{a_\pi}{2}, \sum (1-\delta_j)+ \frac{b_\pi}{2} \right)$$
 
 ## Question (e)
 Write down a Gibbs sampler algorithm to sample from the joint posterior distribution of $\theta$.
 
 **solution:**
-$$p(\theta \mid y) = p(\beta, \delta, \pi \mid y)$$
+<!-- $$p(\theta \mid y) = p(\beta, \delta, \pi \mid y)$$ -->
 
 With Gibbs sampling, the idea is to create a Markov Chain with stationary distribution equal to the full posterior, so that we can generate posterior samples from it. We go back and forth updating the parameters one at a time using the current value of all the other parameters. We start with the simplest conditional and move toward the most complicated.
 
 For our case, in particular, the algorithm is
 
+\begin{enumerate}
+  \item Choose starting values for $\beta, \delta$, and $\pi$ and initialize to those starting values
+  \item For each iteration, $k$ up to number of iterations chosen:
+  \begin{enumerate}
+    \item Sample from $p(\pi \mid -)$ using the most recently sampled $\delta_j$
+    \item Sample from $p(\delta_j \mid -)$ using the most recently sampled $\pi$ and $\beta_j$'s (or initial values of $\beta_j$ if we are in iteration $1$.
+    \item Sample from $p(\beta_j \mid -)$, calculated using the updated value of $\delta_j$ and the most recent values of $\beta_j, j = 1\ldots, n$. Unless $j=1$ or $j=n$, this will involve using $\beta_1$ to $\beta_{j-1}$ from the current iteration of the algorithm, and $\beta_{j+1}$ to $\beta_n$ from the previous iteration of the algorithm.
+  \end{enumerate}
+  \item Check convergence diagnostics by viewing trace plots, auto-correlation and $\hat{R}$ measurements, as well as effective sample size calculations.
+  \item Remove burn-in, and re-check convergence diagnostics.
+  \item If necessary, apply thinning and re-check convergence diagnostics.
+\end{enumerate}
 
-In code, we have
-
-```{r gibbs_updates}
-
-ytilde = function(y, X, bet, i, j) {
-  y[i] - sum(setdiff(X[i,], X[i,j]) * setdiff(bet, bet[j]))
-}
-
-update_pi = function(delta_j, a_pi, b_pi) {
-  shape1 = sum(delta_j) + a_pi/2
-  shape2 = sum(1-delta_j) + b_pi/2
-  rbeta(n = 1, shape1, shape2)
-}
-
-update_delta = function(beta_j, pi, tau, eps) {
-  p1 = pi * exp(-1/(2*tau^2) * beta_j^2)
-  p0 = ((1 - pi) * tau / sqrt(eps)) * exp(-1/(2*eps) * beta_j)
-  rbinom(n = 1, prob = p1/(p0+p1))
-}
-
-update_beta = function(tau, eps, X, y, delta_j, i, j, bet) {
-  ytilde = y[i] - sum(setdiff(X[i,], X[i,j]) * setdiff(bet, bet[j]))
-  
-  if(delta_j == 0) {
-    mutop = eps * sum(X[i, j] * ytild[i])
-    mubot = 1 + eps * sum(X[i, j]^2)
-    sd = sqrt(eps / (1 + eps * sum(X[i, j]^2)))
-    return(rnorm(n = 1, mean = mutop / mubot, sd = sd))
-  }
-  if(delta_j == 1) {
-    mutop = tau^2 * sum(X[i, j] * ytild[i])
-    mubot = 1 + tau^2 * sum(X[i, j]^2)
-    sd = sqrt(tau^2 / (1 + tau^2 * sum(X[i, j]^2)))
-    return(rnorm(n = 1, mean = mutop / mubot, sd = sd))
-  }
-}
-```
-
-```{r gibbs, eval=FALSE, include=FALSE}
-gibbs = function(y, X, n_iter, init, prior) {
-  n = length(y)
-  
-  # initialize
-  pi_out = numeric(n_iter)
-  delta_out = numeric(n_iter)
-  beta_out = numeric(n_iter)
-  
-  beta.curr = init$beta
-  a_pi = init$a_pi
-  b_pi = init$b_pi
-  tau = init$tau
-  eps = init$eps
-  delta = init$delta
-  
-    
-  pi.curr = update_pi(delta_j = delta, a_pi = a_pi, b_pi = b_pi)
-  
-  
-    # Gibbs sampler
-  for(k in 1:n_iter) {
-    delta.curr = update_delta(beta_j = beta.curr[j], pi = pi.curr, tau = , eps = )
-    
-  }
-}
-```
 
 
 # Part II
@@ -231,26 +181,186 @@ Let $\varepsilon = 10^{-4}$ and $\tau^2 = 10^2$. Explain heuristically how the s
 ## Question (g)
 Let $a_{\pi} = b_{\pi} = 1$, the bathtub prior distribution for $\pi$. Using $\varepsilon$ and $\tau$ as in part (f), obtain posterior estimates for the coefficient $\beta$.
 
-```{r setup_gibbs}
+**solution:**
+
+In order to make our code as readable as possible, we write helper functions to update $\pi, \delta_j,$ and $\beta_j$ as well as an index generator function to assist with sampling from the proper past values of $\beta_j$.
+
+```{r helper functions}
+indx_gen = function(j, M) {
+  n = dim(M)[2]
+  if (j == 1) return(M[1, ])
+  if (j == n) return(M[2, ])
+  return(c(M[2, 1 : j-1], M[1, j:n]))
+}
+
+update_pi = function(delta_j, a_pi, b_pi) {
+  shape1 = sum(delta_j) + a_pi/2
+  shape2 = sum(1-delta_j) + b_pi/2
+  rbeta(n = 1, shape1, shape2)
+}
+
+update_delta = function(bet, pi, tau, eps, j) {
+  p0 = ((1 - pi) * tau / sqrt(eps)) * exp(-1/(2*eps) * bet[j]^2)
+  p1 = pi * exp(-1/(2*tau^2) * bet[j]^2)
+  p = p1 / (p0 + p1)
+  return(rbinom(n = 1, size = 1, prob = p))
+  
+}
+
+update_beta = function(delta_j, j, bet, tau, eps, mutop = 0, mubot = 0) {
+  partial.mutop = mutop
+  partial.mubot = mubot
+  for(i in 1:dim(X)[1]) {
+    partial.mutop = partial.mutop + X[i, j] * 
+      (y[i] - sum(setdiff(X[i,], X[i,j]) * setdiff(bet, bet[j])))
+    partial.mubot = partial.mubot + X[i, j]^2
+  }
+  
+  if(delta_j == 0) {
+    bot = 1 + eps * partial.mubot
+    mu = eps * partial.mutop / bot
+    sd = sqrt(eps * bot^-1)
+    return(rnorm(n = 1, mean = mu, sd = sd))
+    
+  }
+  if(delta_j == 1) {
+    bot = 1 + tau^2 * partial.mubot
+    mu = tau^2 * partial.mutop / bot
+    sd = sqrt(tau^2 * bot^-1)
+    return(rnorm(n = 1, mean = mu, sd = sd))
+  }
+}
+```
+
+Our Gibbs sampler function follows the algorithm written for solution (e), except that we only maintain the most recent values for $\pi$ and $\delta_j$
+```{r gibbs sampler}
+gibbs = function(n_iter, init, priors) {
+  beta.out = matrix(data = NA, nrow = n_iter, ncol = dim(X)[2])
+  delta.curr = init$delta_j
+  beta.curr = init$beta
+  beta.out[1, ] = beta.curr
+  
+  for(k in 2:n_iter) {
+    pi.curr = update_pi(delta_j = delta.curr, a_pi = priors$a_pi, b_pi = priors$b_pi)
+    
+    for(j in 1:length(beta.curr)) {
+      delta.curr = update_delta(bet = beta.out[k-1,], pi = pi.curr, 
+                                tau = priors$tau, eps = priors$eps, j = j)
+
+      betas = indx_gen(j = j, M = beta.out[(k-1) : k, ])
+      beta.curr[j] = update_beta(delta_j = delta.curr, j = j, bet = betas, 
+                                 tau = priors$tau, eps = priors$eps)
+      
+      beta.out[k, j] = beta.curr[j]
+    }
+  }
+  return(beta.out)
+}
+```
+
+Here we set up our priors and initialize with chosen starting values. 
+```{r initialize}
 priors = list()
 init = list()
+n_iter = 10000
 
 model = lm(y ~ X - 1)
-prior$betas = model$coefficients
+init$beta = model$coefficients
+init$delta_j = 0
 
-init$a_pi = 1
-init$b_pi = 1
-init$tau = 10
-init$eps = 10^-4
-init$delta = 0
+priors$a_pi = 1
+priors$b_pi = 1
+priors$tau = 10
+priors$eps = 10^-4
+```
 
+Finally, we run the algorithm and show the final $6$ values for each $\beta_j$
+```{r run Gibbs sampler}
+# post = gibbs(n_iter = n_iter, init = init, priors = priors)
+post = readRDS(file = "post_1.rds")
+colnames(post) = c("beta1", "beta2", "beta3", "beta4", "beta5", 
+                   "beta6", "beta7", "beta8", "beta9", "beta10")
+tail(post)
 ```
 
 ## Question (h)
-Check for vonvergence of the MCMC chains using trace plots and compute $\hat{R}$.
+Check for convergence of the MCMC chains using trace plots and compute $\hat{R}$.
+
+**solution:**
+
+First, we calculate $\hat{R}$ for our chain of sampled $\beta$ values
+```{r rhat}
+calc.rhat = function(m, nchain, J, chain) {
+  rhat = numeric(J)
+  for (j in 1:J) {
+    psi.mean = mean(chain[, j])
+    psi.bar = numeric(m)
+    aux.w = numeric(m)
+    for (k in 1:m) {
+      sub.chain = chain[seq((k - 1) * nchain + 1, k * nchain, 1), j]
+      psi.bar[k] = mean(sub.chain)
+      aux.w[k] = (1 / (nchain - 1)) * sum((sub.chain - mean(sub.chain))^2)
+    }
+    B = (nchain / (m - 1)) * (sum((psi.bar - psi.mean)^2))
+    W = (1 / m) * sum(aux.w)
+    VP = ((nchain - 1) / nchain) * W + (1 / nchain) * B
+    rhat[j] = sqrt(VP / W)
+  }
+  return(rhat)
+}
+
+rhat.post = calc.rhat(m = 5, nchain = 100, J = 10, chain = post)
+# TODO: add names for columns
+rhat.post
+```
+
+The $\hat{R}$ values are not close enough to $1$ for us to believe convergence has occurred, and our original chain shows a great deal of auto-correlation so we remove a burn-in of $2,000$ and thin the chain by a step-size of $10$.
+```{r burn and thin}
+burn.in = 2000
+thin_interval = 10
+thin_indx = seq(from = burn.in, to = length(post[, 1]), by = thin_interval)
+
+thin.post = post[thin_indx, ]
+colnames(thin.post) = c("beta1", "beta2", "beta3", "beta4", "beta5",
+                        "beta6", "beta7", "beta8", "beta9", "beta10")
+# burned.post = post[burn.in:n_iter, ]
+# thin.post = Thin(x = post, By = 10)
+rhat.thin.post = calc.rhat(m = 5, nchain = 100, J = 10, chain = thin.post)
+# TODO: add names for columns
+rhat.thin.post
+```
+
+The $\hat{R}$ values for our thinned chain look much better. We now produce trace, density and auto-correlation plots to further assess convergence.
+
+Trace plots and densities of $\beta_j$'s:
+```{r traceplots}
+plot(as.mcmc(thin.post[, 1:2]))
+plot(as.mcmc(thin.post[, 3:4]))
+plot(as.mcmc(thin.post[, 5:6]))
+plot(as.mcmc(thin.post[, 7:8]))
+plot(as.mcmc(thin.post[, 9:10]))
+```
+
+The trace plots show us that our sampler seams to be traversing the entire space and that the thinned posterior Markov chain maintains a consistent mean. This, coupled with the $\hat{R}$ values all being close to $1$, makes us believe convergence has been achieved.
 
 ## Question (i)
 If the MCMC is converging, present the results including the posterior mean, posterior variance, and a $95\%$ credible interval for each coefficient. Based on these results, which covariates are important to predict the response variable?
+
+**solution:**
+
+Summary statistics for the mean, standard deviation and quantiles are given in the following output.
+```{r summary statistics}
+summary(as.mcmc(thin.post))
+# TODO: Add comments about header of summary not being accurate
+```
+
+The $95\%$ Credible Intervals for each of the $\beta_j$'s are given in the following output.
+```{r hdi}
+hdi(as.mcmc(thin.post))
+# TODO: see if Michelle needs variance rather than sd
+```
+
+Since the $95\%$ Credible Intervals for $\beta_3$, $\beta_5$, and $\beta_7$ contain zero, we consider them insignificant to predict the response variable. All the other covariates are significant.
 
 ## Question (j)
 Sensitivity Analysis. Consider four different prior distributions for $\pi$ by choosing values of $a_\pi$ and $b_\pi$ that change the shape of the beta distribution. Plot the prior of $\pi$ for each of these values. Is the posterior distribution of $\beta$ sensitive to these new prior distributions?

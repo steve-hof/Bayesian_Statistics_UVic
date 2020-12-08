@@ -5,10 +5,18 @@ library(R.matlab)
 library(spate)
 setwd("/Users/stevehof/Documents/School/Fall_2020/STAT_460/Assignments/")
 
+
 dat = readMat("Quality_Work/Dataset_FinalProject_2.mat")
 
 X = dat$X
 y = dat$Y
+
+indx_gen = function(j, M) {
+  n = dim(M)[2]
+  if (j == 1) return(M[1, ])
+  if (j == n) return(M[2, ])
+  return(c(M[2, 1 : j-1], M[1, j:n]))
+}
 
 update_pi = function(delta_j, a_pi, b_pi) {
   shape1 = sum(delta_j) + a_pi/2
@@ -20,27 +28,17 @@ update_delta = function(bet, pi, tau, eps, j) {
   p0 = ((1 - pi) * tau / sqrt(eps)) * exp(-1/(2*eps) * bet[j]^2)
   p1 = pi * exp(-1/(2*tau^2) * bet[j]^2)
   rob = p1 / (p0 + p1)
-  bobbyd = rbinom(n = 1, size = 1, prob = rob)
-  return(bobbyd)
+  return(rbinom(n = 1, size = 1, prob = rob))
+  
 }
 
-indx_gen = function(j, M) {
-  n = dim(M)[2]
-  if (j == 1) return(M[1, ])
-  if (j == n) return(M[2, ])
-  return(c(M[2, 1 : j-1], M[1, j:n]))
-}
-
-update_beta = function(tau, eps, X, y, delta_j, j, bet, mutop = 0, mubot = 0) {
+update_beta = function(delta_j, j, bet, tau, eps, mutop = 0, mubot = 0) {
   partial.mutop = mutop
   partial.mubot = mubot
   for(i in 1:dim(X)[1]) {
-    # partial.mutop = partial.mutop + X[i, j] * (y[i] - sum(setdiff(X[i,], X[i,j]) * 
-    #                                                         setdiff(bet, bet[j])))
     partial.mutop = partial.mutop + X[i, j] * (y[i] - sum(setdiff(X[i,], X[i,j]) * 
                                                             setdiff(bet, bet[j])))
     partial.mubot = partial.mubot + X[i, j]^2
-    
   }
   
   if(delta_j == 0) {
@@ -58,11 +56,9 @@ update_beta = function(tau, eps, X, y, delta_j, j, bet, mutop = 0, mubot = 0) {
   }
 }
 
-gibbs = function(y, X, n_iter, init, priors) {
+gibbs = function(n_iter, init, priors) {
   # initialize
-  bob = dim(X)[2]
   beta.out = matrix(data = NA, nrow = n_iter, ncol = dim(X)[2])
-  
   delta.curr = init$delta_j
   beta.curr = init$beta
   beta.out[1, ] = beta.curr
@@ -78,8 +74,8 @@ gibbs = function(y, X, n_iter, init, priors) {
                                 tau = priors$tau, eps = priors$eps, j)
 
       betas = indx_gen(j = j, M = beta.out[(k-1) : k, ])
-      beta.curr[j] = update_beta(tau = priors$tau, eps = priors$eps, X = X, y = y,
-                                 delta_j = delta.curr, j = j, bet = betas)
+      beta.curr[j] = update_beta(delta_j = delta.curr, j = j, bet = betas, 
+                                 tau = priors$tau, eps = priors$eps)
       
       beta.out[k, j] = beta.curr[j]
     }
@@ -102,32 +98,34 @@ priors$b_pi = 1
 priors$tau = 10
 priors$eps = 10^-4
 set.seed(53)
-post = gibbs(y = y, X = X, n_iter = n_iter, init = init, priors = priors)
+# post = gibbs(n_iter = n_iter, init = init, priors = priors)
+post = readRDS(file = "Quality_Work/post_1.rds")
+
 colnames(post) = c("beta1", "beta2", "beta3", "beta4", "beta5", 
                    "beta6", "beta7", "beta8", "beta9", "beta10")
 
 tail(post)
-# plot(as.mcmc(post))
-# summary(as.mcmc(post))
-# coda::autocorr.plot(as.mcmc(post), lag.max = 30)
+plot(as.mcmc(post))
+summary(as.mcmc(post))
+coda::autocorr.plot(as.mcmc(post), lag.max = 30)
 
 effectiveSize(as.mcmc(post))
 
 burn.in = 2000
-thin_interval = 16
+thin_interval = 20
 thin_indx = seq(from = burn.in, to = length(post[,1]), by = thin_interval)
 
 thin.post = post[thin_indx, ]
 colnames(thin.post) = c("beta1", "beta2", "beta3", "beta4", "beta5", 
                         "beta6", "beta7", "beta8", "beta9", "beta10")
 
-trace.plot(t(thin.post[,1]))
+
 plot(as.mcmc(thin.post))
 # coda::autocorr.plot(as.mcmc(thin.post), lag.max = 30)
 effectiveSize(as.mcmc(thin.post))
 length(thin_indx)
+coda::autocorr.plot(as.mcmc(thin.post), lag.max = 30)
 
-tail(thin.post)
 
 
 
