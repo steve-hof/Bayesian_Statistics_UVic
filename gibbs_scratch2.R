@@ -3,10 +3,10 @@ rm(list=ls())
 library(coda)
 library(R.matlab)
 library(spate)
-setwd("/Users/stevehof/Documents/School/Fall_2020/STAT_460/Assignments/")
+setwd("/Users/stevehof/Documents/School/Fall_2020/STAT_460/Assignments/Quality_Work")
 
 
-dat = readMat("Quality_Work/Dataset_FinalProject_2.mat")
+dat = readMat("Dataset_FinalProject_2.mat")
 
 X = dat$X
 y = dat$Y
@@ -93,31 +93,57 @@ summary(model)
 init$beta = model$coefficients
 init$delta_j = 0
 
-priors$a_pi = 1
+priors$a_pi = 12
 priors$b_pi = 1
 priors$tau = 10
 priors$eps = 10^-4
-set.seed(53)
-# post = gibbs(n_iter = n_iter, init = init, priors = priors)
-post = readRDS(file = "Quality_Work/post_1.rds")
+# postone12one = gibbs(n_iter = n_iter, init = init, priors = priors)
+# post = readRDS(file = "Quality_Work/post_1.rds")
 
-colnames(post) = c("beta1", "beta2", "beta3", "beta4", "beta5", 
-                   "beta6", "beta7", "beta8", "beta9", "beta10")
+# colnames(postone12one) = c("beta1", "beta2", "beta3", "beta4", "beta5", 
+#                    "beta6", "beta7", "beta8", "beta9", "beta10")
+# saveRDS(postone12one, file = "postone12one.Rds")
 
-tail(post)
-plot(as.mcmc(post))
-summary(as.mcmc(post))
-coda::autocorr.plot(as.mcmc(post), lag.max = 30)
+post1450 = readRDS(file = "postone1450.Rds")
+post12 = readRDS(file = "post_1_2.Rds")
+postone12 = readRDS(file = "postone12.Rds")
+post12one = readRDS(file = "postone12one.Rds")
+all.posts.new.pi = list(post1450, post12, postone12, post12one)
 
-effectiveSize(as.mcmc(post))
+burn.and.thin = function(post, bi, ti) {
+  thin.indx = seq(from = bi, to = length(post[, 1]), by = ti)
+  thin.post = post[thin.indx, ]
+  colnames(thin.post) = c("beta1", "beta2", "beta3", "beta4", "beta5",
+                          "beta6", "beta7", "beta8", "beta9", "beta10")
+  return(thin.post)
+}
+thin.all.post.new = list(4)
+for (i in 1:4) {
+  thin.all.post.new[[i]] = burn.and.thin(post = all.posts.new.pi[[i]], bi = 2000, ti = 10)
+}
+thin.post1450 = thin.all.post.new[[1]]
+thin.post12 = thin.all.post.new[[2]]
+thin.postone12 = thin.all.post.new[[3]]
+thin.post12one = thin.all.post.new[[4]]
+# tail(post)
+# plot(as.mcmc(post))
+bob = summary(as.mcmc(thin.post1450))
+bob$quantiles
+bob$statistics
 
-burn.in = 2000
-thin_interval = 20
-thin_indx = seq(from = burn.in, to = length(post[,1]), by = thin_interval)
-
-thin.post = post[thin_indx, ]
-colnames(thin.post) = c("beta1", "beta2", "beta3", "beta4", "beta5", 
-                        "beta6", "beta7", "beta8", "beta9", "beta10")
+barb = hdi(as.mcmc(thin.post1450))
+barb
+# coda::autocorr.plot(as.mcmc(post), lag.max = 30)
+# 
+# effectiveSize(as.mcmc(post))
+# 
+# burn.in = 2000
+# thin_interval = 20
+# thin_indx = seq(from = burn.in, to = length(post[,1]), by = thin_interval)
+# 
+# thin.post = post[thin_indx, ]
+# colnames(thin.post) = c("beta1", "beta2", "beta3", "beta4", "beta5", 
+#                         "beta6", "beta7", "beta8", "beta9", "beta10")
 
 
 plot(as.mcmc(thin.post))

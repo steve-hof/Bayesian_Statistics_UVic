@@ -349,13 +349,13 @@ If the MCMC is converging, present the results including the posterior mean, pos
 **solution:**
 
 Summary statistics for the mean, standard deviation and quantiles are given in the following output.
-```{r summary statistics}
-summary(as.mcmc(thin.post))
+```{r summary_statistics}
+summary(as.mcmc(thin.post)) 
 # TODO: Add comments about header of summary not being accurate
 ```
 
 The $95\%$ Credible Intervals for each of the $\beta_j$'s are given in the following output.
-```{r hdi}
+```{r hdi, fig.cap = "95% Highest Density Interval for thinned posterior"}
 hdi(as.mcmc(thin.post))
 # TODO: see if Michelle needs variance rather than sd
 ```
@@ -365,5 +365,67 @@ Since the $95\%$ Credible Intervals for $\beta_3$, $\beta_5$, and $\beta_7$ cont
 ## Question (j)
 Sensitivity Analysis. Consider four different prior distributions for $\pi$ by choosing values of $a_\pi$ and $b_\pi$ that change the shape of the beta distribution. Plot the prior of $\pi$ for each of these values. Is the posterior distribution of $\beta$ sensitive to these new prior distributions?
 
+**solution:**
+
+Here, we've chosen four new sets of values for $\left[a_\pi, b_\pi \right]$ Each of these pairs gives a different shape for the distribution of the prior for $\pi$, as shown in the coming plots. Recall that, in our setup, both $a_\pi$ and $b_\pi$ are both divided by two, which is why the numbers in the code below are half what we state for the $a_\pi$ and $b_\pi$ pairs. 
+
+Our chosen values for $a_\pi$ and $b_\pi$ are: $\left[a_\pi = 14, \beta_\pi = 50 \right]$, $\left[a_\pi = 1, \beta_\pi = 2 \right]$, $\left[a_\pi = 1, \beta_\pi = 12 \right]$ and $\left[a_\pi = 12, \beta_\pi = 1 \right]$
+
+Here are plots of the prior for $\pi$ given the different parameter values.
+```{r plot pies}
+par(mfrow = c(2, 2))
+plot(density(rbeta(10000, 7, 25)))
+plot(density(rbeta(10000, .5, 1)))
+plot(density(rbeta(10000, .5, 6)))
+plot(density(rbeta(10000, 6, .5)))
+
+```
+
+We run our Gibbs sampler for the full $10,000$ iterations for each of the new chosen values of $a_\pi, b_\pi$ and get the following models.
+```{r build new models}
+post1450 = readRDS(file = "postone1450.Rds")
+post12 = readRDS(file = "post_1_2.Rds")
+postone12 = readRDS(file = "postone12.Rds")
+post12one = readRDS(file = "postone12one.Rds")
+all.posts.new.pi = list(post1450 = post1450, post12 = post12, 
+                        postone12 = postone12, post12one = post12one)
+```
+
+We then perform the same burin-in and thinning operations on each of these models.
+
+```{r burn_and_thin}
+burn.and.thin = function(post, bi, ti) {
+  thin.indx = seq(from = bi, to = length(post[, 1]), by = ti)
+  thin.post = post[thin.indx, ]
+  colnames(thin.post) = c("beta1", "beta2", "beta3", "beta4", "beta5",
+                          "beta6", "beta7", "beta8", "beta9", "beta10")
+  return(thin.post)
+}
+
+thin.all.post.new = list(4)
+for (i in 1:4) {
+  thin.all.post.new[[i]] = burn.and.thin(post = all.posts.new.pi[[i]], bi = 2000, ti = 10)
+}
+thin.post1450 = thin.all.post.new[[1]]
+thin.post12 = thin.all.post.new[[2]]
+thin.postone12 = thin.all.post.new[[3]]
+thin.post12one = thin.all.post.new[[4]]
+```
+
+```{r summaries_new, include=FALSE}
+quant.thin.post = summary(as.mcmc(thin.post))$quantiles
+quant.thin.post1450 = summary(as.mcmc(thin.all.post.new[[1]]))$quantiles
+quant.thin.post12 = summary(as.mcmc(thin.all.post.new[[2]]))$quantiles
+quant.thin.postone12 = summary(as.mcmc(thin.all.post.new[[3]]))$quantiles
+quant.thin.post12one = summary(as.mcmc(thin.all.post.new[[4]]))$quantiles
+```
+
+Let's now compare the quantiles with the new parameters to those from our original parameters.
+
+Recall the quantiles from our original model are in Table \@ref(tab:hdi)
+
+```{r quant orig}
+quant.thin.post
+```
 ## Question (k)
 Model Checking. Generate $10,000$ replications of the data $y^{\text{rep}}$ using the same $x_i$ as the original data. Compare the posterior mean and median. Based on that, does the model generate predicted results similar to the observed data in the study?

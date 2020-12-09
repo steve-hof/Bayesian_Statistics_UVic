@@ -1,0 +1,30 @@
+---
+title: "STAT 460 - Assignment 6"
+author: "Steve Hof"
+date: "08/12/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+library(coda)
+library(R.matlab)
+library(HDInterval)
+setwd("/Users/stevehof/Documents/School/Fall_2020/STAT_460/Assignments/Quality_Work")
+```
+
+# Question
+Using the same data you recieved for the final project and assuming $\siga^2 = 1$, implement the Bayesian Lasso described in the article *The Bayesian Lasso* by Park and Casella to sample from the joint posterior of $(\beta_, \ta_1^2, \ldots, tau_p^2)$. Carefully write down the model and the full conditionals. You don't need to provide a detailed derivation of the full conditionals.
+
+## Part 1
+The full conditional of $\beta$ is
+
+
+We first read in the data.
+
+```{r data, include=FALSE}
+dat = readMat("Dataset_FinalProject_2.mat")
+X = dat$X
+y = dat$Y
+```
