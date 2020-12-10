@@ -131,7 +131,7 @@ bob = summary(as.mcmc(thin.post1450))
 bob$quantiles
 bob$statistics
 
-barb = hdi(as.mcmc(thin.post1450))
+barb = t(hdi(as.mcmc(thin.post1450)))
 barb
 # coda::autocorr.plot(as.mcmc(post), lag.max = 30)
 # 

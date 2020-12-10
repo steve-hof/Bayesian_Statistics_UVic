@@ -3,6 +3,7 @@ title:    |
     | STAT 460 
     | Bayesian Statistics 
     | Final Project
+    | Rough Draft
 author: "Steve Hof"
 date: "28/11/2020"
 output: pdf_document
@@ -14,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(coda)
 library(R.matlab)
 library(HDInterval)
+library(MASS)
 setwd("/Users/stevehof/Documents/School/Fall_2020/STAT_460/Assignments/Quality_Work")
 ```
 
@@ -23,7 +25,14 @@ The data from this project was supplied by the course instructor, Dr. Michelle M
 dat = readMat("Dataset_FinalProject_2.mat")
 X = dat$X
 y = dat$Y
+n = length(y)
 ```
+
+```{r betanames, include=FALSE}
+beta.names = c("beta1", "beta2", "beta3", "beta4", "beta5",
+               "beta6", "beta7", "beta8", "beta9", "beta10")
+```
+
 # Part I
 
 Consider the multiple linear regression model:
@@ -183,9 +192,16 @@ Let $a_{\pi} = b_{\pi} = 1$, the bathtub prior distribution for $\pi$. Using $\v
 
 **solution:**
 
-In order to make our code as readable as possible, we write helper functions to update $\pi, \delta_j,$ and $\beta_j$ as well as an index generator function to assist with sampling from the proper past values of $\beta_j$.
+In order to make our code as readable as possible, we write helper functions to update $\pi, \delta_j,$ and $\beta_j$ as well as an index generator function to assist with sampling from the proper past values of $\beta_j$ and a function to apply the burn-in and thinning process.
 
 ```{r helper functions}
+burn.and.thin = function(post, bi, ti) {
+  thin.indx = seq(from = bi, to = length(post[, 1]), by = ti)
+  thin.post = post[thin.indx, ]
+  colnames(thin.post) = beta.names
+  return(thin.post)
+}
+
 indx_gen = function(j, M) {
   n = dim(M)[2]
   if (j == 1) return(M[1, ])
@@ -254,11 +270,12 @@ gibbs = function(n_iter, init, priors) {
       beta.out[k, j] = beta.curr[j]
     }
   }
+  colnames(beta.out) = beta.names
   return(beta.out)
 }
 ```
 
-Here we set up our priors and initialize with chosen starting values. 
+Here we set up our priors and initialize with the given starting values. 
 ```{r initialize}
 priors = list()
 init = list()
@@ -274,14 +291,21 @@ priors$tau = 10
 priors$eps = 10^-4
 ```
 
-Finally, we run the algorithm and show the final $6$ values for each $\beta_j$
-```{r run Gibbs sampler}
-# post = gibbs(n_iter = n_iter, init = init, priors = priors)
+
+```{r load_post, include=FALSE}
 post = readRDS(file = "post_1.rds")
-colnames(post) = c("beta1", "beta2", "beta3", "beta4", "beta5", 
-                   "beta6", "beta7", "beta8", "beta9", "beta10")
-tail(post)
+colnames(post) = beta.names
+# TODO: remove all the colnames post and add to original functions so don't repeat 
+#       as much code (but maybe not because would have to run algorithms again)
+#       or maybe can kinda cheat and save them out ahead of time
 ```
+
+Finally, we run the algorithm and show the final $4$ values for each $\beta_j$
+```{r run_Gibbs_sampler}
+# post = gibbs(n_iter = n_iter, init = init, priors = priors)
+t(tail(post, 4))
+```
+
 
 ## Question (h)
 Check for convergence of the MCMC chains using trace plots and compute $\hat{R}$.
@@ -305,28 +329,23 @@ calc.rhat = function(m, nchain, J, chain) {
     W = (1 / m) * sum(aux.w)
     VP = ((nchain - 1) / nchain) * W + (1 / nchain) * B
     rhat[j] = sqrt(VP / W)
+    names(rhat) = beta.names
   }
   return(rhat)
 }
 
 rhat.post = calc.rhat(m = 5, nchain = 100, J = 10, chain = post)
-# TODO: add names for columns
 rhat.post
 ```
 
 The $\hat{R}$ values are not close enough to $1$ for us to believe convergence has occurred, and our original chain shows a great deal of auto-correlation so we remove a burn-in of $2,000$ and thin the chain by a step-size of $10$.
+
 ```{r burn and thin}
 burn.in = 2000
 thin_interval = 10
-thin_indx = seq(from = burn.in, to = length(post[, 1]), by = thin_interval)
 
-thin.post = post[thin_indx, ]
-colnames(thin.post) = c("beta1", "beta2", "beta3", "beta4", "beta5",
-                        "beta6", "beta7", "beta8", "beta9", "beta10")
-# burned.post = post[burn.in:n_iter, ]
-# thin.post = Thin(x = post, By = 10)
+thin.post = burn.and.thin(post = post, bi = burn.in, ti = thin_interval)
 rhat.thin.post = calc.rhat(m = 5, nchain = 100, J = 10, chain = thin.post)
-# TODO: add names for columns
 rhat.thin.post
 ```
 
@@ -348,15 +367,19 @@ If the MCMC is converging, present the results including the posterior mean, pos
 
 **solution:**
 
-Summary statistics for the mean, standard deviation and quantiles are given in the following output.
+Summary statistics for the mean and standard deviation are given in the following output.
 ```{r summary_statistics}
-summary(as.mcmc(thin.post)) 
-# TODO: Add comments about header of summary not being accurate
+summary(as.mcmc(thin.post))$statistics 
+```
+
+The quantiles of the distribution are given in the following output.
+```{r summary_quantiles}
+summary(as.mcmc(thin.post))$quantiles 
 ```
 
 The $95\%$ Credible Intervals for each of the $\beta_j$'s are given in the following output.
-```{r hdi, fig.cap = "95% Highest Density Interval for thinned posterior"}
-hdi(as.mcmc(thin.post))
+```{r hdi}
+t(hdi(as.mcmc(thin.post)))
 # TODO: see if Michelle needs variance rather than sd
 ```
 
@@ -372,7 +395,7 @@ Here, we've chosen four new sets of values for $\left[a_\pi, b_\pi \right]$ Each
 Our chosen values for $a_\pi$ and $b_\pi$ are: $\left[a_\pi = 14, \beta_\pi = 50 \right]$, $\left[a_\pi = 1, \beta_\pi = 2 \right]$, $\left[a_\pi = 1, \beta_\pi = 12 \right]$ and $\left[a_\pi = 12, \beta_\pi = 1 \right]$
 
 Here are plots of the prior for $\pi$ given the different parameter values.
-```{r plot pies}
+```{r plot_pies}
 par(mfrow = c(2, 2))
 plot(density(rbeta(10000, 7, 25)))
 plot(density(rbeta(10000, .5, 1)))
@@ -394,14 +417,6 @@ all.posts.new.pi = list(post1450 = post1450, post12 = post12,
 We then perform the same burin-in and thinning operations on each of these models.
 
 ```{r burn_and_thin}
-burn.and.thin = function(post, bi, ti) {
-  thin.indx = seq(from = bi, to = length(post[, 1]), by = ti)
-  thin.post = post[thin.indx, ]
-  colnames(thin.post) = c("beta1", "beta2", "beta3", "beta4", "beta5",
-                          "beta6", "beta7", "beta8", "beta9", "beta10")
-  return(thin.post)
-}
-
 thin.all.post.new = list(4)
 for (i in 1:4) {
   thin.all.post.new[[i]] = burn.and.thin(post = all.posts.new.pi[[i]], bi = 2000, ti = 10)
@@ -422,10 +437,55 @@ quant.thin.post12one = summary(as.mcmc(thin.all.post.new[[4]]))$quantiles
 
 Let's now compare the quantiles with the new parameters to those from our original parameters.
 
-Recall the quantiles from our original model are in Table \@ref(tab:hdi)
 
-```{r quant orig}
-quant.thin.post
+The quantiles for our posterior distribution with parameters $a_\pi = 14, b_\pi = 50$ are
+
+```{r quant_post1450}
+quant.thin.post1450
 ```
+
+The quantiles for our posterior distribution with parameters $a_\pi = 1, b_\pi = 2$ are
+
+```{r quant_post12}
+quant.thin.post12
+```
+
+The quantiles for our posterior distribution with parameters $a_\pi = 1, b_\pi = 12$ are
+
+```{r quant_postone12}
+quant.thin.postone12
+```
+
+The quantiles for our posterior distribution with parameters $a_\pi = 12, b_\pi = 1$ are
+
+```{r quant_post12one}
+quant.thin.post12one
+```
+
+As the quantiles show, there is very little difference between the posterior distributions when we change the values of $a_\pi$ and $b_\pi$ in the prior for $\pi$. This tells us that the posterior distribution of $\beta$ is not sensitive to changes in the prior distribution of $\pi$.
+
 ## Question (k)
 Model Checking. Generate $10,000$ replications of the data $y^{\text{rep}}$ using the same $x_i$ as the original data. Compare the posterior mean and median. Based on that, does the model generate predicted results similar to the observed data in the study?
+
+**solution:**
+
+```{r replicating_y}
+# y.rep = matrix(NA, nrow = n, ncol = n_iter)
+# Sig = diag(n)
+# mu.eps = integer(n)
+# 
+# for (i in 1:n_iter) {
+#   y.rep[, i] = X %*% t(post)[, i] + mvrnorm(n = 1, mu = mu.eps, Sigma = Sig) 
+# }
+
+y.rep = readRDS(file = "yrep_1.Rds")
+```
+
+
+```{r compare_yrep_to_y}
+plot(density(apply(X = y.rep, MARGIN = 2, FUN = mean)), main = "add title for mean")
+abline(v = mean(y), col = "red")
+
+plot(density(apply(X = y.rep, MARGIN = 2, FUN = median)), main = "add title for median")
+abline(v = median(y), col = "red")
+```
