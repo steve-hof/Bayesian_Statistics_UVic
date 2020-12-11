@@ -3,29 +3,33 @@ title:    |
     | STAT 460 
     | Bayesian Statistics 
     | Final Project
-    | Rough Draft
 author: "Steve Hof"
-date: "28/11/2020"
+date: "11/12/2020"
 output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
 rm(list=ls())
+options(qwraps2_markup = "markdown")
 knitr::opts_chunk$set(echo = TRUE)
 library(coda)
 library(R.matlab)
 library(HDInterval)
 library(MASS)
+library(latex2exp)
+library(qwraps2)
+library(dplyr)
 setwd("/Users/stevehof/Documents/School/Fall_2020/STAT_460/Assignments/Quality_Work")
 ```
 
 The data from this project was supplied by the course instructor, Dr. Michelle Miranda. We first read in the data, then use it in the second half of the project.
 
-```{r data, include=FALSE}
+```{r data}
 dat = readMat("Dataset_FinalProject_2.mat")
 X = dat$X
 y = dat$Y
 n = length(y)
+J = dim(X)[2]
 ```
 
 ```{r betanames, include=FALSE}
@@ -72,7 +76,7 @@ $\sum_{l \neq j} X_{i l} \beta_{l}$
 
 **solution:**
 
-We start by using hint 1.
+We start by using hint 1. First we focus on $p\left(\beta_{j} \mid \delta_{j}=0, \tau^{2}, \varepsilon, y\right)$
 
 \begin{align*}
 p(\beta_j \mid \delta_j=0, \tau^2, \varepsilon, y) &= p(\beta_j \mid \delta_j=0, \tau^2, \varepsilon)\prod_{i=1}^n p(y_i | \beta_j) \\
@@ -109,7 +113,7 @@ $$p(\beta_j \mid \delta_j=0, \varepsilon,y) \sim \text{Normal}\left(\frac{\varep
 We then repeat the process for the full conditional of $\beta_j$ with $\delta_j=1$.
 
 \begin{align*}
-p(\beta_j \mid \delta_j=0, \tau^2, \tau^2, y) &\propto \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \\
+p(\beta_j \mid \delta_j=1, \tau^2, \tau^2, y) &\propto \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \text{exp}\left\{-\frac{1}{2}\sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j \right)^2 \right\} \\
     &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2} \left(\frac{\beta_j^2}{\tau^2} + \sum_{i=1}^n \left(\tilde{y} - X_{ij}\beta_j  \right)^2 \right) \right\} \\
     &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(\beta_j^2 + \tau^2 \sum_{i=1}^n\left(\tilde{y} - X_{ij}\beta_j \right)^2 \right) \right\} \\
     &=    \frac{1}{\sqrt{\tau^2}}\text{exp}\left\{-\frac{1}{2\tau^2} \left(\beta_j^2 + \tau^2 \sum_{i=1}^n \left[\tilde{y}_i^2 - 2\tilde{y}_i X_{ij}\beta_j + X_{ij}^2\beta_j^2 \right] \right) \right\} \\
@@ -132,7 +136,7 @@ Show that the full conditional distribution of $\delta_j$ is Bernoulli$\displays
 **solution:**
 
 \begin{align*}
-p(\delta_j \mid \beta_j, \tau^2, \varepsilon) &= p(\beta_j | \delta_j, \tau^2, \varepsilon) p(\delta_j | \pi) \\
+p(\delta_j \mid \beta_j, \tau, \varepsilon) &= p(\beta_j | \delta_j, \tau, \varepsilon) p(\delta_j | \pi) \\
   &\propto \left(\frac{1}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)} \pi^{\delta_j}(1 - \pi)^{(1-\delta_j)} \\
   &\propto \left(\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} \right)^{\delta_j} \left(\frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\} \right)^{(1-\delta_j)} \\
  &\propto \left(\frac{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{\delta_j} \left(\frac{\frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}}{\frac{\pi}{\tau}\text{exp}\left\{-\frac{\beta_j^2}{2\tau^2} \right\} + \frac{1-\pi}{\sqrt{\varepsilon}} \text{exp}\left\{-\frac{\beta_j^2}{2\varepsilon} \right\}} \right)^{(1-\delta_j)} \\
@@ -162,19 +166,19 @@ Write down a Gibbs sampler algorithm to sample from the joint posterior distribu
 **solution:**
 <!-- $$p(\theta \mid y) = p(\beta, \delta, \pi \mid y)$$ -->
 
-With Gibbs sampling, the idea is to create a Markov Chain with stationary distribution equal to the full posterior, so that we can generate posterior samples from it. We go back and forth updating the parameters one at a time using the current value of all the other parameters. We start with the simplest conditional and move toward the most complicated.
+With Gibbs sampling the idea is to create a Markov Chain with stationary distribution equal to the full posterior so that we can generate posterior samples from it. We go back and forth updating the parameters one at a time using the current value of all the other parameters. We start by updating (sampling from) the distribution with the least number of dependencies and move toward the most dependencies.
 
 For our case, in particular, the algorithm is
 
 \begin{enumerate}
-  \item Choose starting values for $\beta, \delta$, and $\pi$ and initialize to those starting values
-  \item For each iteration, $k$ up to number of iterations chosen:
+  \item Initialize $\beta, \delta$, and $\pi$ to given starting values
+  \item For each iteration, $k$ up to number of iterations given:
   \begin{enumerate}
     \item Sample from $p(\pi \mid -)$ using the most recently sampled $\delta_j$
     \item Sample from $p(\delta_j \mid -)$ using the most recently sampled $\pi$ and $\beta_j$'s (or initial values of $\beta_j$ if we are in iteration $1$.
     \item Sample from $p(\beta_j \mid -)$, calculated using the updated value of $\delta_j$ and the most recent values of $\beta_j, j = 1\ldots, n$. Unless $j=1$ or $j=n$, this will involve using $\beta_1$ to $\beta_{j-1}$ from the current iteration of the algorithm, and $\beta_{j+1}$ to $\beta_n$ from the previous iteration of the algorithm.
   \end{enumerate}
-  \item Check convergence diagnostics by viewing trace plots, auto-correlation and $\hat{R}$ measurements, as well as effective sample size calculations.
+  \item Check convergence diagnostics by viewing trace plots, $\hat{R}$ measurements and comparing the posterior means to the $\beta$ coefficients given by regular regression.
   \item Remove burn-in, and re-check convergence diagnostics.
   \item If necessary, apply thinning and re-check convergence diagnostics.
 \end{enumerate}
@@ -183,9 +187,17 @@ For our case, in particular, the algorithm is
 
 # Part II
 ## Question (f)
-Let $\varepsilon = 10^{-4}$ and $\tau^2 = 10^2$. Explain heuristically how the spike-and-slab prior allows for variable selection in the multiple linear regression model context.
+Let $\varepsilon = 10^{-4}$ and $\tau^2 = 10^2$. Explain heuristically how the spike-and-slab prior allows for variable selection in the multiple linear regression model context. 
 
 **solution:**
+
+The spike-and-slab prior is a method for performing Bayesian regression and varialbe selection at the same time. It is especially useful when there are a large number of predictor varialbes and we think some of them are insignificant. 
+
+It is a mixture model consisting of, the spike and the slab. "Spike" refers to setting the prior of $\beta$ to have mass at zero. ``Slab'' refers to creating a relatively flat and diffuse prior by multiplying the variance-covariance matrix by a small scalar $>0$. 
+
+In our case, we see that $\tau = 10$ corresponds to the spike and $\varepsilon = 10^{-4}$ corresponds to the slab.
+
+Spike-and-slab also offerers efficiency because the Gibbs sampler does not have to explore the entire space each time.
 
 ## Question (g)
 Let $a_{\pi} = b_{\pi} = 1$, the bathtub prior distribution for $\pi$. Using $\varepsilon$ and $\tau$ as in part (f), obtain posterior estimates for the coefficient $\beta$.
@@ -206,7 +218,7 @@ indx_gen = function(j, M) {
   n = dim(M)[2]
   if (j == 1) return(M[1, ])
   if (j == n) return(M[2, ])
-  return(c(M[2, 1 : j-1], M[1, j:n]))
+  return(c(M[2, 1:j-1], M[1, j:n]))
 }
 
 update_pi = function(delta_j, a_pi, b_pi) {
@@ -220,7 +232,6 @@ update_delta = function(bet, pi, tau, eps, j) {
   p1 = pi * exp(-1/(2*tau^2) * bet[j]^2)
   p = p1 / (p0 + p1)
   return(rbinom(n = 1, size = 1, prob = p))
-  
 }
 
 update_beta = function(delta_j, j, bet, tau, eps, mutop = 0, mubot = 0) {
@@ -248,10 +259,10 @@ update_beta = function(delta_j, j, bet, tau, eps, mutop = 0, mubot = 0) {
 }
 ```
 
-Our Gibbs sampler function follows the algorithm written for solution (e), except that we only maintain the most recent values for $\pi$ and $\delta_j$
+Our Gibbs sampler function follows the algorithm written for solution (e), except that we only maintain the most recent values for $\pi$ and $\delta_j$, rather than the entire vector of values.
 ```{r gibbs sampler}
 gibbs = function(n_iter, init, priors) {
-  beta.out = matrix(data = NA, nrow = n_iter, ncol = dim(X)[2])
+  beta.out = matrix(data = NA, nrow = n_iter, ncol = J)
   delta.curr = init$delta_j
   beta.curr = init$beta
   beta.out[1, ] = beta.curr
@@ -349,7 +360,7 @@ rhat.thin.post = calc.rhat(m = 5, nchain = 100, J = 10, chain = thin.post)
 rhat.thin.post
 ```
 
-The $\hat{R}$ values for our thinned chain look much better. We now produce trace, density and auto-correlation plots to further assess convergence.
+The $\hat{R}$ values for our thinned chain look much better. We now produce trace and density plots to further assess convergence.
 
 Trace plots and densities of $\beta_j$'s:
 ```{r traceplots}
@@ -367,7 +378,8 @@ If the MCMC is converging, present the results including the posterior mean, pos
 
 **solution:**
 
-Summary statistics for the mean and standard deviation are given in the following output.
+Summary statistics for the mean and standard deviation are given in the following output. (Since Variance, not standard deviation, was asked for in this question, **see Appendix for Variance**)
+
 ```{r summary_statistics}
 summary(as.mcmc(thin.post))$statistics 
 ```
@@ -380,28 +392,38 @@ summary(as.mcmc(thin.post))$quantiles
 The $95\%$ Credible Intervals for each of the $\beta_j$'s are given in the following output.
 ```{r hdi}
 t(hdi(as.mcmc(thin.post)))
-# TODO: see if Michelle needs variance rather than sd
 ```
 
 Since the $95\%$ Credible Intervals for $\beta_3$, $\beta_5$, and $\beta_7$ contain zero, we consider them insignificant to predict the response variable. All the other covariates are significant.
+
+Finally, we compare our posterior means to those calculated with regular regression.
+
+```{r compare_to_reg_regression}
+model$coefficients
+```
+
+All of the significant coefficients fall within our $95\%$ Credible Intervals which gives us further proof that our Gibbs Sampling was successful.
 
 ## Question (j)
 Sensitivity Analysis. Consider four different prior distributions for $\pi$ by choosing values of $a_\pi$ and $b_\pi$ that change the shape of the beta distribution. Plot the prior of $\pi$ for each of these values. Is the posterior distribution of $\beta$ sensitive to these new prior distributions?
 
 **solution:**
 
-Here, we've chosen four new sets of values for $\left[a_\pi, b_\pi \right]$ Each of these pairs gives a different shape for the distribution of the prior for $\pi$, as shown in the coming plots. Recall that, in our setup, both $a_\pi$ and $b_\pi$ are both divided by two, which is why the numbers in the code below are half what we state for the $a_\pi$ and $b_\pi$ pairs. 
+Here, we've chosen four new sets of values for $\left(a_\pi, b_\pi \right)$. Each of these pairs gives a different shape for the distribution of the prior for $\pi$, as shown in the coming plots. Recall that, in our setup, both $a_\pi$ and $b_\pi$ are both divided by two, which is why the numbers in the code below are half what we state for the $a_\pi$ and $b_\pi$ pairs. 
 
-Our chosen values for $a_\pi$ and $b_\pi$ are: $\left[a_\pi = 14, \beta_\pi = 50 \right]$, $\left[a_\pi = 1, \beta_\pi = 2 \right]$, $\left[a_\pi = 1, \beta_\pi = 12 \right]$ and $\left[a_\pi = 12, \beta_\pi = 1 \right]$
+Our chosen values for $a_\pi$ and $b_\pi$ are: $\left(a_\pi = 14, \beta_\pi = 50 \right)$, $\left(a_\pi = 1, \beta_\pi = 2 \right)$, $\left(a_\pi = 1, \beta_\pi = 12 \right)$ and $\left(a_\pi = 12, \beta_\pi = 1 \right)$
 
 Here are plots of the prior for $\pi$ given the different parameter values.
 ```{r plot_pies}
 par(mfrow = c(2, 2))
-plot(density(rbeta(10000, 7, 25)))
-plot(density(rbeta(10000, .5, 1)))
-plot(density(rbeta(10000, .5, 6)))
-plot(density(rbeta(10000, 6, .5)))
-
+plot(density(rbeta(10000, 7, 25)), 
+     main = TeX("$p\\left(\\pi \\, |\\, a_{\\pi}/2 = 7, \\, b_{\\pi}/2 = 25\\right)$"))
+plot(density(rbeta(10000, .5, 1)), 
+     main = TeX("$p\\left(\\pi \\, |\\, a_{\\pi}/2 = .5, \\, b_{\\pi}/2 = 1\\right)$"))
+plot(density(rbeta(10000, .5, 6)), 
+     main = TeX("$p\\left(\\pi \\, |\\, a_{\\pi}/2 = .5, \\, b_{\\pi}/2 = 6\\right)$"))
+plot(density(rbeta(10000, 6, .5)), 
+     main = TeX("$p\\left(\\pi \\, |\\, a_{\\pi}/2 = 6, \\, b_{\\pi}/2 = .5\\right)$"))
 ```
 
 We run our Gibbs sampler for the full $10,000$ iterations for each of the new chosen values of $a_\pi, b_\pi$ and get the following models.
@@ -469,23 +491,56 @@ Model Checking. Generate $10,000$ replications of the data $y^{\text{rep}}$ usin
 
 **solution:**
 
+We first create our vector of $y^{\text{rep}}$'s, where each $y^{\text{rep}} \in \mathbb{R}^{n}$.
 ```{r replicating_y}
-# y.rep = matrix(NA, nrow = n, ncol = n_iter)
+y.rep = matrix(NA, nrow = n, ncol = n_iter)
 Sig = diag(n)
-mu.eps = integer(n)
+mu = X %*% t(post)
 
 # for (i in 1:n_iter) {
-#   y.rep[, i] = X %*% t(post)[, i] + mvrnorm(n = 1, mu = mu.eps, Sigma = Sig) 
+#   y.rep[, i] = mvrnorm(mu = mu[, i], Sigma = Sig)
 # }
 
-y.rep = readRDS(file = "yrep_1.Rds")
+y.rep = readRDS(file = "yrep_most_recent.Rds")
 ```
 
-
-```{r compare_yrep_to_y}
-plot(density(apply(X = y.rep, MARGIN = 2, FUN = mean)), main = "add title for mean")
+We then compare the posterior mean and median to that of the observed data, $y$.
+```{r compare_means, fig.cap = "Vertical red line shows the mean of the observed data for comparison"}
+plot(density(apply(X = y.rep, MARGIN = 2, FUN = mean)), main = "Distribution of Posterior Mean")
 abline(v = mean(y), col = "red")
+```
 
-plot(density(apply(X = y.rep, MARGIN = 2, FUN = median)), main = "add title for median")
+```{r compare_medians, fig.cap = "Vertical red line shows the median of the observed data for comparison"}
+plot(density(apply(X = y.rep, MARGIN = 2, FUN = median)), main = "Distribution of Posterior Median")
 abline(v = median(y), col = "red")
 ```
+
+
+As seen in the figures below, the distributions of both the posterior mean and median have their peaks almost exactly in line with the mean / median of the observed data, $y$. This leads us to believe that our model does a great job of generating predicted results similar to the observed data in the study.
+
+$\pagebreak$
+
+# Appendix
+The Variances of the $\beta_j$'s is given in the following output
+
+```{r variance}
+ThinnedPosterior = as.data.frame(thin.post)
+
+thinned.var.summary <-
+  list("Variance of Thinned Posterior" = 
+         list("Variance beta1:" = ~ var(beta1),
+              "Variance beta2:" = ~ var(beta2),
+              "Variance beta3:" = ~ var(beta3),
+              "Variance beta4:" = ~ var(beta4),
+              "Variance beta5:" = ~ var(beta5),
+              "Variance beta6:" = ~ var(beta6),
+              "Variance beta7:" = ~ var(beta7),
+              "Variance beta8:" = ~ var(beta8),
+              "Variance beta9:" = ~ var(beta9),
+              "Variance beta10:"= ~ var(beta10)))
+
+summary_table(ThinnedPosterior, thinned.var.summary)
+```
+
+
+
