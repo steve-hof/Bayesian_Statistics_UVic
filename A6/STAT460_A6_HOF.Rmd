@@ -1,0 +1,211 @@
+---
+title: "STAT 460 - Assignment 6"
+author: "Steve Hof"
+date: "08/12/2020"
+header-includes:
+      - \usepackage{bm}
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+library(coda)
+library(R.matlab)
+library(HDInterval)
+# library(spate)
+library(MASS)
+library(statmod)
+setwd("/Users/stevehof/Documents/School/Fall_2020/STAT_460/Assignments/Quality_Work")
+```
+
+# Question
+Using the same data you received for the final project and assuming $\sigma^2 = 1$, implement the Bayesian Lasso described in the article *The Bayesian Lasso* by Park and Casella to sample from the joint posterior of $(\beta, \tau_1^2, \ldots, \tau_p^2)$. Carefully write down the model and the full conditionals. You don't need to provide a detailed derivation of the full conditionals.
+
+## Part 1
+
+Consider the multiple linear regression model 
+$$\bm{y} = \mu\bm{1}_n + \bm{X}\bm{\beta} + \bm{\varepsilon}$$
+where we incorporate the Bayesian Lasso to estimate the regression parameters, $\bm{\beta}$. The Lasso estimates achieve:
+
+$$\min_\beta (\bm{\tilde{y}} - \bm{X}\bm{\beta})^T (\bm{\tilde{y}} - \bm{X}\bm{\beta}) + \lambda \sum_{j=1}^p |\beta_j|$$
+The full conditional of $\bm{\beta}$ is given by
+$$p(\bm{\beta} \mid \bm{y}, \bm{\tau}, \sigma^2) \sim \text{MVN}\left(\bm{A}^{-1}\bm{X}^T\bm{\tilde{y}}, \sigma^2\bm{A}^{-1} \right)$$
+with 
+
+\begin{itemize}
+\item $\bm{\tilde{y}} = \bm{y} - \bar{y}\bm{1}_n$, 
+\item $\bm{A} = \bm{X}^T\bm{X} + \bm{D}_{\tau}^{-1}$, where $\bm{D}_{\tau} = \text{diag}(\tau_1^2, \ldots, \tau_p^2)$
+\end{itemize}
+
+$\tau_1^2, \ldots, \tau_p^2$ are conditionally independent with full conditional given by 
+
+$$p(\bm{\tau} \mid \bm{\beta}, \lambda, \sigma^2) \sim \text{InverseGaussian}\left(\sqrt{\frac{\lambda^2\sigma^2}{\beta_j^2}}, \lambda^2 \right)$$
+
+To calculate our initial $\lambda$ value we used
+$$\lambda^{(0)} = \frac{p\sqrt{\hat{\sigma}^2_{\text{LS}}}}{\sum_{j=1}^p |\hat{\beta}_j^{\text{LS}}|}$$
+
+
+We now read in the data and set up our global variables.
+
+```{r data, include=FALSE}
+dat = readMat("Dataset_FinalProject_2.mat")
+X = dat$X
+y = dat$Y
+sig2 = 1
+n = length(y)
+p = dim(X)[2]
+y.tilde = y - matrix(rep(1, n), nrow = n, ncol = 1)
+partial.A = t(X) %*% X
+beta.names = c("beta1", "beta2", "beta3", "beta4", "beta5",
+               "beta6", "beta7", "beta8", "beta9", "beta10")
+```
+
+For convenience and readability of our code we write helper functions that perform the updates for $\bm{\beta}$ and $\bm{\tau}$, a function to execute removing a burn-in and thinning, and a function to calculate $\hat{R}$ which we will use to help determine if our posterior chain has converged.
+
+```{r helper_functions}
+update.beta = function(tau.curr, bet) {
+  D.inv = solve((1 / tau.curr) * diag(p))
+  A = partial.A + D.inv
+  A.inv = solve(A)
+  mu = A.inv %*% t(X) %*% y.tilde
+  Sig = sig2 * A.inv
+  mvrnorm(n = 1, mu = mu, Sigma = Sig)
+}
+
+update.tau = function(bet, lam, tau) {
+  for(j in 1:p) {
+    mu.prime = sqrt(lam^2 * sig2 / bet[j]^2)
+    tau[j] = (rinvgauss(n = 1, mean = mu.prime, shape = lam^2))^2
+  }
+  return(1 / tau)
+}
+
+burn.and.thin = function(post, bi, ti) {
+  thin.indx = seq(from = bi, to = length(post[, 1]), by = ti)
+  thin.post = post[thin.indx, ]
+  colnames(thin.post) = beta.names
+  return(thin.post)
+}
+
+calc.rhat = function(m, nchain, J, chain) {
+  rhat = numeric(J)
+  for (j in 1:J) {
+    psi.mean = mean(chain[, j])
+    psi.bar = numeric(m)
+    aux.w = numeric(m)
+    for (k in 1:m) {
+      sub.chain = chain[seq((k - 1) * nchain + 1, k * nchain, 1), j]
+      psi.bar[k] = mean(sub.chain)
+      aux.w[k] = (1 / (nchain - 1)) * sum((sub.chain - mean(sub.chain))^2)
+    }
+    B = (nchain / (m - 1)) * (sum((psi.bar - psi.mean)^2))
+    W = (1 / m) * sum(aux.w)
+    VP = ((nchain - 1) / nchain) * W + (1 / nchain) * B
+    rhat[j] = sqrt(VP / W)
+    names(rhat) = beta.names
+  }
+  return(rhat)
+}
+```
+
+$\pagebreak$
+
+We then code our trusty Gibbs Sampler.
+
+```{r gibbs}
+gibbs = function(n_iter, init, priors) {
+  beta.out = matrix(data = NA, nrow = n_iter, ncol = p)
+  beta.curr = init$beta
+  beta.out[1, ] = beta.curr
+  tau.curr = init$tau
+  
+  for(k in 2:n_iter) {
+    tau.curr = update.tau(bet = beta.curr, lam = priors$lam, tau = tau.curr)
+    beta.curr = update.beta(tau.curr = tau.curr, bet = beta.curr)
+    beta.out[k, ] = beta.curr
+  }
+  colnames(beta.out) = beta.names
+  return(beta.out)
+}
+```
+
+The following code sets up our initial values and priors, where we use regular regression to supply us our initial values for $\bm{\beta}$ and initialize all $\tau_i, (i=1,\ldots, p)$ to $1$.
+
+```{r inits}
+priors = list()
+init = list()
+n_iter = 10000
+model = lm(y ~ X - 1)
+init$beta = model$coefficients
+init$tau = rep(1, p)
+
+priors$sig2 = 1
+priors$lam = p / sum(abs(init$beta))
+```
+
+And finally, we run our Gibbs sampler, remove a $1,000$ iteration burn-in and view the final $4$ values of our $\beta_j$'s 
+
+```{r calc_posterior}
+post = gibbs(n_iter, init, priors)
+burnt.post = burn.and.thin(post = post, bi = 1000, ti = 1)
+t(tail(post, 4))
+```
+
+The values for each $\beta_j$ remain fairly constant through the final $4$ iterations, which makes us hopeful that convergence has occurred. 
+
+$\pagebreak$
+
+We now calculate the $\hat{R}$ values
+
+```{r rhat}
+rhat.post = calc.rhat(m = 5, nchain = 100, J = 10, chain = post)
+rhat.post
+```
+
+The $\hat{R}$ values are all very close to one without even  thinning the chain. 
+
+Let's now check the auto-correlation
+
+```{r autocorr}
+coda::autocorr.plot(as.mcmc(post), lag.max = 30)
+```
+
+Notice we have almost no auto-correlation at even a lag of only $2$! 
+
+Finally, we check the trace plots and densities of our $\beta_j$'s.
+
+```{r traceplot}
+plot(as.mcmc(post[, 1:2]))
+plot(as.mcmc(post[, 3:4]))
+plot(as.mcmc(post[, 5:6]))
+plot(as.mcmc(post[, 7:8]))
+plot(as.mcmc(post[, 9:10]))
+```
+
+Although $\beta_2, \beta_4$ and $\beta_8$ make occasional dips below their mean, when we calculate the posterior mean, these tiny anomalies will vanish.
+
+Since all of our diagnostics check out, we will now present our results including the posterior mean, posterior standard deviation, quantiles and a $95\%$ credible interval for each coefficient
+
+Summary statistics for the mean and standard deviation are given in the following output.
+```{r summary_statistics}
+summary(as.mcmc(post))$statistics 
+```
+
+The quantiles of the distribution are given in the following output.
+```{r summary_quantiles}
+summary(as.mcmc(post))$quantiles 
+```
+
+The $95\%$ Credible Intervals for each of the $\beta_j$'s are given in the following output.
+```{r hdi}
+t(hdi(as.mcmc(post)))
+```
+
+Overall, using the Bayesian Lasso in Bayesian Regression provided an extremely fast sampling algorithm that converged quickly. So fast that we did not even need to apply thinning. 
+
+
+The end. :)
+
+
+
